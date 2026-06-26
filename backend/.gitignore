@@ -1,0 +1,20 @@
+# Environment — secrets, NE JAMAIS COMMITTER
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Uploads locaux
+uploads/*
+!uploads/.gitkeep
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Logs
+*.log
