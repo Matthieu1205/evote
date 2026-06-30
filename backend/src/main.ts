@@ -49,15 +49,24 @@ async function bootstrap() {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 8 * 60 * 60 * 1000, // 8 heures
-        sameSite: 'lax',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       },
     }),
   );
   /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
 
-  // CORS
+  // CORS — autorise l'URL de production configurée ainsi que tous les
+  // déploiements Vercel (preview/production) du même projet pour les tests.
+  const configuredOrigin = process.env.FRONTEND_URL?.trim() || 'http://localhost:5173';
   app.enableCors({
-    origin: process.env.FRONTEND_URL?.trim() || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (origin === configuredOrigin) return callback(null, true);
+      if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`Origin non autorisée par CORS: ${origin}`));
+    },
     credentials: true,
   });
 
