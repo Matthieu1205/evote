@@ -20,6 +20,10 @@ export class EmailService {
       port,
       secure: port === 465,
       auth: { user, pass },
+      // Force IPv4 : certains hébergeurs (Railway) résolvent smtp.gmail.com en
+      // IPv6 sans route sortante fonctionnelle, ce qui cause des ETIMEDOUT.
+      family: 4,
+      connectionTimeout: 15_000,
     });
   }
 
