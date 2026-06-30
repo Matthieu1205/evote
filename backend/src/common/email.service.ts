@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 @Injectable()
 export class EmailService {
@@ -15,7 +16,7 @@ export class EmailService {
       );
     }
 
-    return nodemailer.createTransport({
+    const options: SMTPTransport.Options & { family?: number } = {
       host,
       port,
       secure: port === 465,
@@ -24,7 +25,9 @@ export class EmailService {
       // IPv6 sans route sortante fonctionnelle, ce qui cause des ETIMEDOUT.
       family: 4,
       connectionTimeout: 15_000,
-    });
+    };
+
+    return nodemailer.createTransport(options);
   }
 
   private buildFrom(): string {
