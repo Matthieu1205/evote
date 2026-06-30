@@ -24,15 +24,15 @@ export class AuthService {
   ) {}
 
   /**
-   * Résout un slug d'organisation en id, en excluant l'organisation
-   * plateforme (réservée aux SUPER_ADMIN, non accessible via ce flux).
+   * Résout un slug d'organisation en id. L'organisation plateforme est
+   * incluse : les SUPER_ADMIN se connectent via ce même flux avec le
+   * slug "platform".
    */
   private async resolveOrganizationId(slug: string): Promise<string | null> {
     const org = await this.prisma.organization.findUnique({
       where: { slug },
     });
-    if (!org || org.isPlatform) return null;
-    return org.id;
+    return org?.id ?? null;
   }
 
   /**

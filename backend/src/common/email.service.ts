@@ -1,39 +1,47 @@
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+
+interface SendMailOptions {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+}
 
 @Injectable()
 export class EmailService {
-  private createTransporter() {
-    const host = process.env.SMTP_HOST?.trim();
-    const port = parseInt(process.env.SMTP_PORT?.trim() ?? '587', 10);
-    const user = process.env.SMTP_USER?.trim();
-    const pass = process.env.SMTP_PASS?.trim().replace(/\s+/g, '');
-
-    if (!host || !user || !pass) {
-      throw new Error(
-        'Configuration SMTP manquante : définissez SMTP_HOST, SMTP_USER et SMTP_PASS.',
-      );
+  private buildFrom(): string {
+    const raw = (process.env.RESEND_FROM ?? '').trim();
+    if (!raw) {
+      throw new Error('Configuration Resend manquante : définissez RESEND_FROM.');
     }
-
-    const options: SMTPTransport.Options & { family?: number } = {
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-      // Force IPv4 : certains hébergeurs (Railway) résolvent smtp.gmail.com en
-      // IPv6 sans route sortante fonctionnelle, ce qui cause des ETIMEDOUT.
-      family: 4,
-      connectionTimeout: 15_000,
-    };
-
-    return nodemailer.createTransport(options);
+    return raw.includes('<') ? raw : `eVote <${raw}>`;
   }
 
-  private buildFrom(): string {
-    const raw = (process.env.SMTP_FROM ?? process.env.SMTP_USER ?? '').trim();
-    // Si SMTP_FROM contient déjà un display name ("Name <email>"), l'utiliser tel quel
-    return raw.includes('<') ? raw : `"eVote" <${raw}>`;
+  private async sendMail(options: SendMailOptions): Promise<void> {
+    const apiKey = process.env.RESEND_API_KEY?.trim();
+    if (!apiKey) {
+      throw new Error('Configuration Resend manquante : définissez RESEND_API_KEY.');
+    }
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: this.buildFrom(),
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+      }),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`Resend a refusé l'envoi (${res.status}) : ${body}`);
+    }
   }
 
   async sendOtpEmail(
@@ -42,8 +50,6 @@ export class EmailService {
     code: string,
     purpose: 'LOGIN' | 'VOTE',
   ): Promise<void> {
-    const from = this.buildFrom();
-    const transporter = this.createTransporter();
     const label =
       purpose === 'LOGIN' ? 'connexion à votre espace' : 'confirmation de vote';
 
@@ -72,8 +78,7 @@ export class EmailService {
 </body>
 </html>`;
 
-    await transporter.sendMail({
-      from,
+    await this.sendMail({
       to,
       subject: `Votre code de ${label} — ${code}`,
       html,
@@ -87,8 +92,6 @@ export class EmailService {
     ordreNumber: string,
     tempPassword: string,
   ): Promise<void> {
-    const from = this.buildFrom();
-    const transporter = this.createTransporter();
     const appUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 
     const html = `
@@ -120,8 +123,7 @@ export class EmailService {
 </body>
 </html>`;
 
-    await transporter.sendMail({
-      from,
+    await this.sendMail({
       to,
       subject: 'Bienvenue sur eVote — vos identifiants de connexion',
       html,
@@ -136,8 +138,6 @@ export class EmailService {
     status: 'VALIDEE' | 'REJETEE',
     reviewNote?: string | null,
   ): Promise<void> {
-    const from = this.buildFrom();
-    const transporter = this.createTransporter();
     const isValid = status === 'VALIDEE';
     const subject = isValid
       ? 'Votre candidature a été validée — eVote'
@@ -161,11 +161,11 @@ export class EmailService {
 </body>
 </html>`;
 
-    await transporter.sendMail({
-      from,
+    await this.sendMail({
       to,
       subject,
       html,
+      text: `Bonjour ${recipientName},\n\nVotre candidature au poste de ${positionTitle} a été ${isValid ? 'validée' : 'rejetée'} par la commission électorale.${reviewNote ? `\n\nMotif : ${reviewNote}` : ''}`,
     });
   }
 }
