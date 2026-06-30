@@ -41,7 +41,7 @@ export class OtpService {
       },
     });
 
-    const delivery = process.env.OTP_DELIVERY ?? 'console';
+    const delivery = process.env.OTP_DELIVERY?.trim() ?? 'console';
 
     if (delivery === 'email') {
       const user = await this.prisma.user.findUnique({
