@@ -1,11 +1,15 @@
-export function Logo({ className = '' }: { className?: string }) {
+export function Logo({
+  className = '',
+  src = '/logo-evote.svg',
+  alt = 'eVote',
+}: {
+  className?: string;
+  src?: string;
+  alt?: string;
+}) {
   return (
     <span className={`inline-flex items-center ${className}`}>
-      <img
-        src="/logo-evote.svg"
-        alt="eVote — Ordre des Pharmaciens"
-        className="h-12 w-auto"
-      />
+      <img src={src} alt={alt} className="h-12 w-auto" />
     </span>
   );
 }

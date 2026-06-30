@@ -25,16 +25,21 @@ export class TallyController {
     @Body('publish') publish: boolean,
     @CurrentUser() user: SessionUser,
   ) {
-    return this.tallyService.runTally(id, publish ?? false, user.userId);
+    return this.tallyService.runTally(
+      user.organizationId,
+      id,
+      publish ?? false,
+      user.userId,
+    );
   }
 
   @Get(':id/results')
-  getResults(@Param('id') id: string) {
-    return this.tallyService.getResults(id);
+  getResults(@Param('id') id: string, @CurrentUser() user: SessionUser) {
+    return this.tallyService.getResults(user.organizationId, id);
   }
 
   @Get(':id/live-results')
-  getLiveResults(@Param('id') id: string) {
-    return this.tallyService.computeTally(id);
+  getLiveResults(@Param('id') id: string, @CurrentUser() user: SessionUser) {
+    return this.tallyService.computeTally(user.organizationId, id);
   }
 }

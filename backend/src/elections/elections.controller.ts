@@ -24,11 +24,12 @@ export class ElectionsController {
 
   @Get()
   findAll(
+    @CurrentUser() user: SessionUser,
     @Query('status') status?: ElectionStatus,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.electionsService.findAll({
+    return this.electionsService.findAll(user.organizationId, {
       status,
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
@@ -36,14 +37,18 @@ export class ElectionsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.electionsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: SessionUser) {
+    return this.electionsService.findOne(user.organizationId, id);
   }
 
   @Roles(Role.ADMIN, Role.COMMISSION)
   @Post()
   create(@Body() dto: CreateElectionDto, @CurrentUser() user: SessionUser) {
-    return this.electionsService.create(dto, user.userId);
+    return this.electionsService.create(
+      user.organizationId,
+      dto,
+      user.userId,
+    );
   }
 
   @Roles(Role.ADMIN, Role.COMMISSION)
@@ -53,7 +58,12 @@ export class ElectionsController {
     @Body() dto: UpdateElectionDto,
     @CurrentUser() user: SessionUser,
   ) {
-    return this.electionsService.update(id, dto, user.userId);
+    return this.electionsService.update(
+      user.organizationId,
+      id,
+      dto,
+      user.userId,
+    );
   }
 
   @Roles(Role.ADMIN, Role.COMMISSION)
@@ -63,13 +73,18 @@ export class ElectionsController {
     @Body('status') status: ElectionStatus,
     @CurrentUser() user: SessionUser,
   ) {
-    return this.electionsService.changeStatus(id, status, user.userId);
+    return this.electionsService.changeStatus(
+      user.organizationId,
+      id,
+      status,
+      user.userId,
+    );
   }
 
   @Roles(Role.ADMIN)
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   remove(@Param('id') id: string, @CurrentUser() user: SessionUser) {
-    return this.electionsService.remove(id, user.userId);
+    return this.electionsService.remove(user.organizationId, id, user.userId);
   }
 }

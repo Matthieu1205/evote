@@ -13,6 +13,7 @@ export class AuditService {
     entityId?: string;
     meta?: Prisma.InputJsonValue;
     ip?: string | null;
+    organizationId?: string | null;
   }): Promise<void> {
     try {
       await this.prisma.auditLog.create({
@@ -23,6 +24,7 @@ export class AuditService {
           entityId: params.entityId,
           meta: params.meta,
           ip: params.ip ?? null,
+          organizationId: params.organizationId ?? null,
         },
       });
     } catch (e) {

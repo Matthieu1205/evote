@@ -27,13 +27,14 @@ export class UsersController {
   @Roles(Role.ADMIN, Role.COMMISSION, Role.OBSERVATEUR)
   @Get()
   findAll(
+    @CurrentUser() user: SessionUser,
     @Query('role') role?: Role,
     @Query('status') status?: MemberStatus,
     @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.usersService.findAll({
+    return this.usersService.findAll(user.organizationId, {
       role,
       status,
       search,
@@ -44,8 +45,8 @@ export class UsersController {
 
   @Roles(Role.ADMIN)
   @Get('export')
-  async exportCsv(@Res() res: Response) {
-    const csv = await this.usersService.exportCsv();
+  async exportCsv(@Res() res: Response, @CurrentUser() user: SessionUser) {
+    const csv = await this.usersService.exportCsv(user.organizationId);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader(
       'Content-Disposition',
@@ -56,14 +57,14 @@ export class UsersController {
 
   @Roles(Role.ADMIN, Role.COMMISSION)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: SessionUser) {
+    return this.usersService.findOne(user.organizationId, id);
   }
 
   @Roles(Role.ADMIN)
   @Post()
   create(@Body() dto: CreateUserDto, @CurrentUser() user: SessionUser) {
-    return this.usersService.create(dto, user.userId);
+    return this.usersService.create(user.organizationId, dto, user.userId);
   }
 
   @Roles(Role.ADMIN)
@@ -73,19 +74,28 @@ export class UsersController {
     @Body() dto: UpdateUserDto,
     @CurrentUser() user: SessionUser,
   ) {
-    return this.usersService.update(id, dto, user.userId);
+    return this.usersService.update(
+      user.organizationId,
+      id,
+      dto,
+      user.userId,
+    );
   }
 
   @Roles(Role.ADMIN)
   @Post(':id/reset-password')
   resetPassword(@Param('id') id: string, @CurrentUser() user: SessionUser) {
-    return this.usersService.resetPassword(id, user.userId);
+    return this.usersService.resetPassword(
+      user.organizationId,
+      id,
+      user.userId,
+    );
   }
 
   @Roles(Role.ADMIN)
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   remove(@Param('id') id: string, @CurrentUser() user: SessionUser) {
-    return this.usersService.remove(id, user.userId);
+    return this.usersService.remove(user.organizationId, id, user.userId);
   }
 }

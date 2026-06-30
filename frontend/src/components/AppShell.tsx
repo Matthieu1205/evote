@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
 import { ROLE_LABELS } from '../lib/rbac';
+import { useOrgBranding } from '../hooks/useOrgBranding';
 
 const BASE_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
 
@@ -26,6 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  useOrgBranding(user?.organization.primaryColor);
   const role = user?.role ?? '';
   const items = NAV.filter((i) => role && i.roles.includes(role));
   const [open, setOpen] = useState(false);
@@ -58,7 +60,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-7xl items-center px-4 py-3 sm:px-6">
           {/* Logo */}
           <Link to="/dashboard" className="shrink-0">
-            <Logo className="[&_img]:[filter:brightness(0)_saturate(100%)_invert(39%)_sepia(88%)_saturate(500%)_hue-rotate(124deg)]" />
+            <Logo
+              src={user?.organization.logoUrl ?? undefined}
+              alt={user?.organization.name}
+              className={
+                user?.organization.logoUrl
+                  ? ''
+                  : '[&_img]:[filter:brightness(0)_saturate(100%)_invert(39%)_sepia(88%)_saturate(500%)_hue-rotate(124deg)]'
+              }
+            />
           </Link>
 
           {/* Nav desktop — centrée */}
@@ -145,7 +155,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         }`}
       >
         <div className="flex items-center justify-between border-b border-ink-100 px-5 py-4">
-          <Logo className="[&_img]:[filter:brightness(0)_saturate(100%)_invert(39%)_sepia(88%)_saturate(500%)_hue-rotate(124deg)]" />
+          <Logo
+            src={user?.organization.logoUrl ?? undefined}
+            alt={user?.organization.name}
+            className={
+              user?.organization.logoUrl
+                ? ''
+                : '[&_img]:[filter:brightness(0)_saturate(100%)_invert(39%)_sepia(88%)_saturate(500%)_hue-rotate(124deg)]'
+            }
+          />
           <button
             type="button"
             aria-label="Fermer"

@@ -25,7 +25,7 @@ export class CandidaciesController {
       ? currentUser.userId
       : undefined;
 
-    return this.candidaciesService.findAll({
+    return this.candidaciesService.findAll(currentUser.organizationId, {
       positionId,
       electionId,
       status: status as CandidacyStatus | undefined,
@@ -36,14 +36,18 @@ export class CandidaciesController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.candidaciesService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: SessionUser) {
+    return this.candidaciesService.findOne(user.organizationId, id);
   }
 
   @Roles(Role.ELECTEUR, Role.CANDIDAT, Role.COMMISSION, Role.ADMIN)
   @Post()
   create(@Body() dto: CreateCandidacyDto, @CurrentUser() user: SessionUser) {
-    return this.candidaciesService.create(dto, user.userId);
+    return this.candidaciesService.create(
+      user.organizationId,
+      dto,
+      user.userId,
+    );
   }
 
   @Roles(Role.COMMISSION, Role.ADMIN)
@@ -53,7 +57,12 @@ export class CandidaciesController {
     @Body() dto: ReviewCandidacyDto,
     @CurrentUser() user: SessionUser,
   ) {
-    return this.candidaciesService.validate(id, dto, user.userId);
+    return this.candidaciesService.validate(
+      user.organizationId,
+      id,
+      dto,
+      user.userId,
+    );
   }
 
   @Roles(Role.COMMISSION, Role.ADMIN)
@@ -63,11 +72,20 @@ export class CandidaciesController {
     @Body() dto: ReviewCandidacyDto,
     @CurrentUser() user: SessionUser,
   ) {
-    return this.candidaciesService.reject(id, dto, user.userId);
+    return this.candidaciesService.reject(
+      user.organizationId,
+      id,
+      dto,
+      user.userId,
+    );
   }
 
   @Put(':id/withdraw')
   withdraw(@Param('id') id: string, @CurrentUser() user: SessionUser) {
-    return this.candidaciesService.withdraw(id, user.userId);
+    return this.candidaciesService.withdraw(
+      user.organizationId,
+      id,
+      user.userId,
+    );
   }
 }

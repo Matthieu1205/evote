@@ -19,14 +19,17 @@ export class CandidaciesService {
     private email: EmailService,
   ) {}
 
-  async findAll(params: {
-    positionId?: string;
-    status?: CandidacyStatus;
-    electionId?: string;
-    userId?: string;
-    page?: number;
-    limit?: number;
-  }) {
+  async findAll(
+    organizationId: string,
+    params: {
+      positionId?: string;
+      status?: CandidacyStatus;
+      electionId?: string;
+      userId?: string;
+      page?: number;
+      limit?: number;
+    },
+  ) {
     const {
       positionId,
       status,
@@ -37,7 +40,7 @@ export class CandidaciesService {
     } = params;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.CandidacyWhereInput = {};
+    const where: Prisma.CandidacyWhereInput = { organizationId };
     if (positionId) where.positionId = positionId;
     if (status) where.status = status;
     if (userId) where.userId = userId;
@@ -76,9 +79,9 @@ export class CandidaciesService {
     };
   }
 
-  async findOne(id: string) {
-    const c = await this.prisma.candidacy.findUnique({
-      where: { id },
+  async findOne(organizationId: string, id: string) {
+    const c = await this.prisma.candidacy.findFirst({
+      where: { id, organizationId },
       include: {
         user: {
           select: {
@@ -101,10 +104,14 @@ export class CandidaciesService {
     return c;
   }
 
-  async create(dto: CreateCandidacyDto, userId: string) {
-    // Vérifier que le poste existe
-    const position = await this.prisma.position.findUnique({
-      where: { id: dto.positionId },
+  async create(
+    organizationId: string,
+    dto: CreateCandidacyDto,
+    userId: string,
+  ) {
+    // Vérifier que le poste existe au sein de l'organisation
+    const position = await this.prisma.position.findFirst({
+      where: { id: dto.positionId, organizationId },
       include: { election: true },
     });
     if (!position) throw new NotFoundException('Poste introuvable.');
@@ -127,7 +134,7 @@ export class CandidaciesService {
     }
 
     const candidacy = await this.prisma.candidacy.create({
-      data: { ...dto, userId },
+      data: { ...dto, userId, organizationId },
       include: { position: { include: { election: true } }, user: true },
     });
 
@@ -136,13 +143,19 @@ export class CandidaciesService {
       action: 'CANDIDACY_SUBMITTED',
       entity: 'Candidacy',
       entityId: candidacy.id,
+      organizationId,
     });
 
     return candidacy;
   }
 
-  async validate(id: string, dto: ReviewCandidacyDto, actorId: string) {
-    await this.findOne(id);
+  async validate(
+    organizationId: string,
+    id: string,
+    dto: ReviewCandidacyDto,
+    actorId: string,
+  ) {
+    await this.findOne(organizationId, id);
 
     const updated = await this.prisma.candidacy.update({
       where: { id },
@@ -159,6 +172,7 @@ export class CandidaciesService {
       action: 'CANDIDACY_VALIDATED',
       entity: 'Candidacy',
       entityId: id,
+      organizationId,
     });
 
     // Notification email
@@ -176,8 +190,13 @@ export class CandidaciesService {
     return updated;
   }
 
-  async reject(id: string, dto: ReviewCandidacyDto, actorId: string) {
-    await this.findOne(id);
+  async reject(
+    organizationId: string,
+    id: string,
+    dto: ReviewCandidacyDto,
+    actorId: string,
+  ) {
+    await this.findOne(organizationId, id);
 
     const updated = await this.prisma.candidacy.update({
       where: { id },
@@ -195,6 +214,7 @@ export class CandidaciesService {
       entity: 'Candidacy',
       entityId: id,
       meta: { reviewNote: dto.reviewNote },
+      organizationId,
     });
 
     // Notification email
@@ -213,8 +233,8 @@ export class CandidaciesService {
     return updated;
   }
 
-  async withdraw(id: string, userId: string) {
-    const candidacy = await this.findOne(id);
+  async withdraw(organizationId: string, id: string, userId: string) {
+    const candidacy = await this.findOne(organizationId, id);
     if (candidacy.userId !== userId) {
       throw new ForbiddenException(
         'Vous ne pouvez retirer que votre propre candidature.',
@@ -236,6 +256,7 @@ export class CandidaciesService {
       action: 'CANDIDACY_WITHDRAWN',
       entity: 'Candidacy',
       entityId: id,
+      organizationId,
     });
 
     return updated;

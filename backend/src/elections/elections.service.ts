@@ -16,14 +16,17 @@ export class ElectionsService {
     private audit: AuditService,
   ) {}
 
-  async findAll(params: {
-    status?: ElectionStatus;
-    page?: number;
-    limit?: number;
-  }) {
+  async findAll(
+    organizationId: string,
+    params: {
+      status?: ElectionStatus;
+      page?: number;
+      limit?: number;
+    },
+  ) {
     const { status, page = 1, limit = 20 } = params;
     const skip = (page - 1) * limit;
-    const where: Prisma.ElectionWhereInput = {};
+    const where: Prisma.ElectionWhereInput = { organizationId };
     if (status) where.status = status;
 
     const [total, elections] = await Promise.all([
@@ -49,9 +52,9 @@ export class ElectionsService {
     };
   }
 
-  async findOne(id: string) {
-    const election = await this.prisma.election.findUnique({
-      where: { id },
+  async findOne(organizationId: string, id: string) {
+    const election = await this.prisma.election.findFirst({
+      where: { id, organizationId },
       include: {
         positions: {
           orderBy: { order: 'asc' },
@@ -78,17 +81,23 @@ export class ElectionsService {
     return election;
   }
 
-  async create(dto: CreateElectionDto, actorId?: string) {
+  async create(
+    organizationId: string,
+    dto: CreateElectionDto,
+    actorId?: string,
+  ) {
     const { positions, ...electionData } = dto;
 
     const election = await this.prisma.election.create({
       data: {
         ...electionData,
+        organizationId,
         startAt: new Date(dto.startAt),
         endAt: new Date(dto.endAt),
         positions: positions
           ? {
               create: positions.map((p, i) => ({
+                organizationId,
                 title: p.title,
                 description: p.description,
                 seats: p.seats ?? 1,
@@ -105,13 +114,19 @@ export class ElectionsService {
       action: 'ELECTION_CREATED',
       entity: 'Election',
       entityId: election.id,
+      organizationId,
     });
 
     return election;
   }
 
-  async update(id: string, dto: UpdateElectionDto, actorId?: string) {
-    await this.findOne(id);
+  async update(
+    organizationId: string,
+    id: string,
+    dto: UpdateElectionDto,
+    actorId?: string,
+  ) {
+    await this.findOne(organizationId, id);
 
     const { positions, startAt, endAt, ...rest } = dto;
     const updateData: Prisma.ElectionUpdateInput = {
@@ -132,13 +147,18 @@ export class ElectionsService {
       entity: 'Election',
       entityId: id,
       meta: { status: dto.status },
+      organizationId,
     });
 
     return election;
   }
 
-  async remove(id: string, actorId?: string): Promise<{ message: string }> {
-    const election = await this.findOne(id);
+  async remove(
+    organizationId: string,
+    id: string,
+    actorId?: string,
+  ): Promise<{ message: string }> {
+    const election = await this.findOne(organizationId, id);
     if (election.status === 'OUVERT') {
       throw new BadRequestException(
         'Impossible de supprimer une élection en cours.',
@@ -150,12 +170,18 @@ export class ElectionsService {
       action: 'ELECTION_DELETED',
       entity: 'Election',
       entityId: id,
+      organizationId,
     });
     return { message: 'Élection supprimée.' };
   }
 
-  async changeStatus(id: string, status: ElectionStatus, actorId?: string) {
-    await this.findOne(id);
+  async changeStatus(
+    organizationId: string,
+    id: string,
+    status: ElectionStatus,
+    actorId?: string,
+  ) {
+    await this.findOne(organizationId, id);
     const election = await this.prisma.election.update({
       where: { id },
       data: { status },
@@ -165,6 +191,7 @@ export class ElectionsService {
       action: `ELECTION_STATUS_${status}`,
       entity: 'Election',
       entityId: id,
+      organizationId,
     });
     return election;
   }

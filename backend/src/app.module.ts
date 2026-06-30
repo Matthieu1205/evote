@@ -15,6 +15,7 @@ import { VotesModule } from './votes/votes.module';
 import { TallyModule } from './tally/tally.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AuditLogModule } from './audit/audit-log.module';
+import { OrganizationsModule } from './organizations/organizations.module';
 
 @Module({
   controllers: [PublicController, UploadController],
@@ -45,6 +46,7 @@ import { AuditLogModule } from './audit/audit-log.module';
     TallyModule,
     DashboardModule,
     AuditLogModule,
+    OrganizationsModule,
   ],
 })
 export class AppModule {}

@@ -9,6 +9,14 @@ import {
 } from 'react';
 import { api } from '../lib/api';
 
+export interface OrganizationBranding {
+  name: string;
+  slug: string;
+  logoUrl?: string | null;
+  primaryColor?: string | null;
+  memberLabel: string;
+}
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -21,6 +29,7 @@ export interface AuthUser {
   section?: string | null;
   region?: string | null;
   photoUrl?: string | null;
+  organization: OrganizationBranding;
 }
 
 export interface RawApiUser {
@@ -34,6 +43,7 @@ export interface RawApiUser {
   section?: string | null;
   region?: string | null;
   photoUrl?: string | null;
+  organization: OrganizationBranding;
 }
 
 function mapUser(data: RawApiUser): AuthUser {
@@ -49,6 +59,7 @@ function mapUser(data: RawApiUser): AuthUser {
     section: data.section,
     region: data.region,
     photoUrl: data.photoUrl,
+    organization: data.organization,
   };
 }
 

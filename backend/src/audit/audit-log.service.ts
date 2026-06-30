@@ -6,16 +6,19 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AuditLogService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(params: {
-    action?: string;
-    actorId?: string;
-    entity?: string;
-    entityId?: string;
-    from?: Date;
-    to?: Date;
-    page?: number;
-    limit?: number;
-  }) {
+  async findAll(
+    organizationId: string,
+    params: {
+      action?: string;
+      actorId?: string;
+      entity?: string;
+      entityId?: string;
+      from?: Date;
+      to?: Date;
+      page?: number;
+      limit?: number;
+    },
+  ) {
     const {
       action,
       actorId,
@@ -28,7 +31,7 @@ export class AuditLogService {
     } = params;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.AuditLogWhereInput = {};
+    const where: Prisma.AuditLogWhereInput = { organizationId };
     if (action) where.action = { contains: action, mode: 'insensitive' };
     if (actorId) where.actorId = actorId;
     if (entity) where.entity = entity;

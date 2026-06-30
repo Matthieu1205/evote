@@ -1,6 +1,8 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AuditLogService } from './audit-log.service';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { SessionUser } from '../common/decorators/session-user.interface';
 import { Role } from '@prisma/client';
 
 @Controller('audit')
@@ -14,6 +16,7 @@ export class AuditLogController {
   @Roles(Role.ADMIN, Role.COMMISSION, Role.OBSERVATEUR)
   @Get()
   findAll(
+    @CurrentUser() user: SessionUser,
     @Query('action') action?: string,
     @Query('actorId') actorId?: string,
     @Query('entity') entity?: string,
@@ -23,7 +26,7 @@ export class AuditLogController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.auditLogService.findAll({
+    return this.auditLogService.findAll(user.organizationId, {
       action,
       actorId,
       entity,

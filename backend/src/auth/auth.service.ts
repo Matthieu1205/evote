@@ -24,14 +24,38 @@ export class AuthService {
   ) {}
 
   /**
+   * Résout un slug d'organisation en id, en excluant l'organisation
+   * plateforme (réservée aux SUPER_ADMIN, non accessible via ce flux).
+   */
+  private async resolveOrganizationId(slug: string): Promise<string | null> {
+    const org = await this.prisma.organization.findUnique({
+      where: { slug },
+    });
+    if (!org || org.isPlatform) return null;
+    return org.id;
+  }
+
+  /**
    * Étape 1 : Vérifier identifiants et envoyer un OTP par email.
    */
   async requestOtp(
     dto: RequestOtpDto,
     ip?: string,
   ): Promise<{ message: string }> {
+    const organizationId = await this.resolveOrganizationId(
+      dto.organizationSlug,
+    );
+    if (!organizationId) {
+      return { message: 'Si ce compte existe, un OTP a été envoyé.' };
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { ordreNumber: dto.ordreNumber },
+      where: {
+        organizationId_ordreNumber: {
+          organizationId,
+          ordreNumber: dto.ordreNumber,
+        },
+      },
     });
 
     if (!user) {
@@ -50,6 +74,7 @@ export class AuthService {
         entity: 'User',
         entityId: user.id,
         ip,
+        organizationId: user.organizationId,
       });
       // Réponse générique.
       return { message: 'Si ce compte existe, un OTP a été envoyé.' };
@@ -68,8 +93,21 @@ export class AuthService {
    */
   async login(dto: LoginDto, req: Request): Promise<object> {
     const ip = req.ip;
+    const organizationId = await this.resolveOrganizationId(
+      dto.organizationSlug,
+    );
+    if (!organizationId) {
+      throw new UnauthorizedException('Identifiants invalides.');
+    }
+
     const user = await this.prisma.user.findUnique({
-      where: { ordreNumber: dto.ordreNumber },
+      where: {
+        organizationId_ordreNumber: {
+          organizationId,
+          ordreNumber: dto.ordreNumber,
+        },
+      },
+      include: { organization: true },
     });
 
     if (!user) {
@@ -87,6 +125,7 @@ export class AuthService {
         entity: 'User',
         entityId: user.id,
         ip,
+        organizationId: user.organizationId,
       });
       throw new UnauthorizedException('Identifiants invalides.');
     }
@@ -103,6 +142,7 @@ export class AuthService {
         entity: 'User',
         entityId: user.id,
         ip,
+        organizationId: user.organizationId,
       });
       throw new UnauthorizedException('Code OTP invalide ou expiré.');
     }
@@ -111,6 +151,7 @@ export class AuthService {
     req.session.userId = user.id;
     req.session.role = user.role;
     req.session.ordreNumber = user.ordreNumber;
+    req.session.organizationId = user.organizationId;
 
     await this.audit.log({
       actorId: user.id,
@@ -118,6 +159,7 @@ export class AuthService {
       entity: 'User',
       entityId: user.id,
       ip,
+      organizationId: user.organizationId,
     });
 
     return {
@@ -128,6 +170,13 @@ export class AuthService {
       role: user.role,
       ordreNumber: user.ordreNumber,
       status: user.status,
+      organization: {
+        name: user.organization.name,
+        slug: user.organization.slug,
+        logoUrl: user.organization.logoUrl,
+        primaryColor: user.organization.primaryColor,
+        memberLabel: user.organization.memberLabel,
+      },
     };
   }
 
@@ -188,9 +237,19 @@ export class AuthService {
   }
 
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({
-      where: { ordreNumber: dto.ordreNumber },
-    });
+    const organizationId = await this.resolveOrganizationId(
+      dto.organizationSlug,
+    );
+    const user = organizationId
+      ? await this.prisma.user.findUnique({
+          where: {
+            organizationId_ordreNumber: {
+              organizationId,
+              ordreNumber: dto.ordreNumber,
+            },
+          },
+        })
+      : null;
     // Réponse générique pour éviter l'énumération d'utilisateurs
     if (!user || user.status !== 'ACTIF') {
       return {
@@ -205,9 +264,19 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({
-      where: { ordreNumber: dto.ordreNumber },
-    });
+    const organizationId = await this.resolveOrganizationId(
+      dto.organizationSlug,
+    );
+    const user = organizationId
+      ? await this.prisma.user.findUnique({
+          where: {
+            organizationId_ordreNumber: {
+              organizationId,
+              ordreNumber: dto.ordreNumber,
+            },
+          },
+        })
+      : null;
     if (!user) throw new UnauthorizedException('Compte introuvable.');
 
     const ok = await this.otp.verifyOtp(user.id, 'RESET', dto.otp);
@@ -245,6 +314,15 @@ export class AuthService {
         phone: true,
         photoUrl: true,
         createdAt: true,
+        organization: {
+          select: {
+            name: true,
+            slug: true,
+            logoUrl: true,
+            primaryColor: true,
+            memberLabel: true,
+          },
+        },
       },
     });
     return user;

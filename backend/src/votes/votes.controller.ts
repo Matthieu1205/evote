@@ -27,6 +27,7 @@ export class VotesController {
     @Query('round') round?: string,
   ) {
     return this.votesService.hasVoted(
+      user.organizationId,
       electionId,
       user.userId,
       round ? parseInt(round) : undefined,
@@ -40,7 +41,11 @@ export class VotesController {
     @Param('electionId') electionId: string,
     @CurrentUser() user: SessionUser,
   ) {
-    return this.votesService.requestVoteOtp(electionId, user.userId);
+    return this.votesService.requestVoteOtp(
+      user.organizationId,
+      electionId,
+      user.userId,
+    );
   }
 
   @Post()
@@ -50,6 +55,11 @@ export class VotesController {
     @CurrentUser() user: SessionUser,
     @Req() req: Request,
   ) {
-    return this.votesService.castVote(dto, user.userId, req.ip);
+    return this.votesService.castVote(
+      user.organizationId,
+      dto,
+      user.userId,
+      req.ip,
+    );
   }
 }

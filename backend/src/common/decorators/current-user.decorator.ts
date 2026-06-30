@@ -11,6 +11,7 @@ export const CurrentUser = createParamDecorator(
       userId: request.session.userId ?? '',
       role: request.session.role ?? '',
       ordreNumber: request.session.ordreNumber ?? '',
+      organizationId: request.session.organizationId ?? '',
     };
   },
 );

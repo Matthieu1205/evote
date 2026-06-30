@@ -44,6 +44,7 @@ import AdminElectionsPage from './pages/AdminElectionsPage';
 import AdminCandidaturesPage from './pages/AdminCandidaturesPage';
 import AuditPage from './pages/AuditPage';
 import ElectionResultsPage from './pages/ElectionResultsPage';
+import PlatformOrganizations from './platform/PlatformOrganizations';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -73,6 +74,14 @@ function BackofficeRoute({ children }: { children: ReactNode }) {
   if (loading) return null;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function PlatformRoute({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'SUPER_ADMIN') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -178,6 +187,9 @@ function AppRoutes() {
       <Route path="/backoffice/scrutins" element={<BackofficeRoute><BackofficeElections /></BackofficeRoute>} />
       <Route path="/backoffice/candidatures" element={<BackofficeRoute><BackofficeCandidatures /></BackofficeRoute>} />
       <Route path="/backoffice/audit" element={<BackofficeRoute><BackofficeAudit /></BackofficeRoute>} />
+
+      {/* Plateforme — SUPER_ADMIN only */}
+      <Route path="/platform" element={<PlatformRoute><PlatformOrganizations /></PlatformRoute>} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

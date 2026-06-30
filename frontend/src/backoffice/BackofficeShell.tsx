@@ -1,6 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useOrgBranding } from '../hooks/useOrgBranding';
 
 const BASE_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
 
@@ -76,6 +77,7 @@ export function BackofficeShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  useOrgBranding(user?.organization.primaryColor);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
@@ -110,10 +112,14 @@ export function BackofficeShell({ children }: { children: ReactNode }) {
     <div className="flex h-full flex-col" style={{ background: 'linear-gradient(180deg, #064e3b 0%, #052e24 100%)' }}>
       {/* Logo */}
       <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-        <img src="/logo-evote.svg" alt="eVote" className="h-9 w-auto brightness-0 invert" />
+        {user?.organization.logoUrl ? (
+          <img src={user.organization.logoUrl} alt={user.organization.name} className="h-9 w-auto" />
+        ) : (
+          <img src="/logo-evote.svg" alt="eVote" className="h-9 w-auto brightness-0 invert" />
+        )}
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-white/60">Backoffice</p>
-          <p className="text-sm font-bold text-white">Administration</p>
+          <p className="truncate text-sm font-bold text-white">{user?.organization.name ?? 'Administration'}</p>
         </div>
       </div>
 

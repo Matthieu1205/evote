@@ -21,7 +21,7 @@ export class SessionGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<Request>();
 
-    if (!request.session.userId) {
+    if (!request.session.userId || !request.session.organizationId) {
       throw new UnauthorizedException('Session expirée ou non authentifié.');
     }
     return true;

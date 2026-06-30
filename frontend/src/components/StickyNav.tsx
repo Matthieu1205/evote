@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const NAV_LINKS = [
-  { label: 'Accueil',   href: '#' },
-  { label: 'Candidats', href: '#candidats' },
-  { label: 'Chiffres',  href: '#processus' },
-  { label: 'Scrutin',   href: '#countdown' },
+  { label: 'Accueil',  href: '#' },
+  { label: 'Chiffres', href: '#processus' },
 ];
 
 export function StickyNav() {

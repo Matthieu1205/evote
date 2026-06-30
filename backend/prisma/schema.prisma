@@ -1,6 +1,3 @@
-// Plateforme de vote électronique - Ordre des Pharmaciens
-// Modèle de données (annexe du cahier des charges)
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,14 +6,194 @@ datasource db {
   provider = "postgresql"
 }
 
-// ----------------------------- Énumérations -----------------------------
+model Organization {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  memberLabel  String   @default("Numéro d'inscription à l'Ordre")
+  logoUrl      String?
+  primaryColor String?
+  isPlatform   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users       User[]
+  elections   Election[]
+  positions   Position[]
+  candidacies Candidacy[]
+  ballots     Ballot[]
+  voteRecords VoteRecord[]
+  auditLogs   AuditLog[]
+
+  @@index([isPlatform])
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  ordreNumber    String
+  email          String
+  firstName      String
+  lastName       String
+  passwordHash   String
+  role           Role         @default(ELECTEUR)
+  status         MemberStatus @default(ACTIF)
+  isEligible     Boolean      @default(true)
+  section        String?
+  region         String?
+  phone          String?
+  photoUrl       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  auditLogs      AuditLog[]   @relation("ActorLogs")
+  candidacies    Candidacy[]
+  otps           Otp[]
+  voteRecords    VoteRecord[]
+
+  @@unique([organizationId, ordreNumber])
+  @@unique([organizationId, email])
+  @@index([role])
+  @@index([status])
+  @@index([organizationId])
+}
+
+model Election {
+  id              String         @id @default(cuid())
+  organizationId  String
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  title           String
+  description     String?
+  status          ElectionStatus @default(BROUILLON)
+  majorityRule    MajorityRule   @default(RELATIVE)
+  totalRounds     Int            @default(1)
+  currentRound    Int            @default(1)
+  startAt         DateTime
+  endAt           DateTime
+  eligibleSection String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  ballots         Ballot[]
+  positions       Position[]
+  voteRecords     VoteRecord[]
+
+  @@index([status])
+  @@index([organizationId])
+}
+
+model Position {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  electionId     String
+  title          String
+  description    String?
+  seats          Int          @default(1)
+  order          Int          @default(0)
+  candidacies    Candidacy[]
+  election       Election     @relation(fields: [electionId], references: [id], onDelete: Cascade)
+
+  @@index([electionId])
+  @@index([organizationId])
+}
+
+model Candidacy {
+  id             String          @id @default(cuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  positionId     String
+  userId         String
+  status         CandidacyStatus @default(SOUMISE)
+  profession     String?
+  age            Int?
+  biography      String?
+  photoUrl       String?
+  videoUrl       String?
+  program        String?
+  documentUrl    String?
+  reviewNote     String?
+  submittedAt    DateTime        @default(now())
+  reviewedAt     DateTime?
+  position       Position        @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([positionId, userId])
+  @@index([status])
+  @@index([organizationId])
+}
+
+model Ballot {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  electionId     String
+  round          Int          @default(1)
+  ciphertext     String
+  iv             String
+  authTag        String
+  createdAt      DateTime     @default(now())
+  election       Election     @relation(fields: [electionId], references: [id], onDelete: Cascade)
+
+  @@index([electionId, round])
+  @@index([organizationId])
+}
+
+model VoteRecord {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  electionId     String
+  userId         String
+  round          Int          @default(1)
+  votedAt        DateTime     @default(now())
+  election       Election     @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([electionId, userId, round])
+  @@index([electionId, round])
+  @@index([organizationId])
+}
+
+model Otp {
+  id        String     @id @default(cuid())
+  userId    String
+  codeHash  String
+  purpose   OtpPurpose
+  context   String?
+  expiresAt DateTime
+  consumed  Boolean    @default(false)
+  attempts  Int        @default(0)
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+}
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  actorId        String?
+  action         String
+  entity         String?
+  entityId       String?
+  meta           Json?
+  ip             String?
+  createdAt      DateTime      @default(now())
+  actor          User?         @relation("ActorLogs", fields: [actorId], references: [id])
+
+  @@index([action])
+  @@index([createdAt])
+  @@index([organizationId])
+}
 
 enum Role {
-  ELECTEUR // Pharmacien électeur
-  CANDIDAT // Pharmacien candidat
-  COMMISSION // Commission électorale (validation candidatures, scrutins)
-  ADMIN // Administrateur technique
-  OBSERVATEUR // Observateur / auditeur (lecture seule)
+  ELECTEUR
+  CANDIDAT
+  COMMISSION
+  ADMIN
+  OBSERVATEUR
+  SUPER_ADMIN
 }
 
 enum MemberStatus {
@@ -27,17 +204,17 @@ enum MemberStatus {
 }
 
 enum ElectionStatus {
-  BROUILLON // En préparation
-  PLANIFIE // Calendrier fixé, candidatures ouvertes
-  OUVERT // Scrutin ouvert au vote
-  CLOS // Scrutin clôturé, en attente de dépouillement
-  DEPOUILLE // Dépouillement effectué
-  PUBLIE // Résultats publiés
+  BROUILLON
+  PLANIFIE
+  OUVERT
+  CLOS
+  DEPOUILLE
+  PUBLIE
 }
 
 enum MajorityRule {
-  RELATIVE // Majorité relative (1 tour)
-  ABSOLUE // Majorité absolue (>50%, sinon second tour)
+  RELATIVE
+  ABSOLUE
 }
 
 enum CandidacyStatus {
@@ -51,151 +228,4 @@ enum OtpPurpose {
   LOGIN
   VOTE
   RESET
-}
-
-// ----------------------------- Modèles -----------------------------
-
-model User {
-  id           String       @id @default(cuid())
-  ordreNumber  String       @unique // Numéro d'inscription au tableau de l'Ordre
-  email        String       @unique
-  firstName    String
-  lastName     String
-  passwordHash String
-  role         Role         @default(ELECTEUR)
-  status       MemberStatus @default(ACTIF)
-  isEligible   Boolean      @default(true) // Éligibilité électorale
-  section      String? // Section/collège ordinal (A, B, C, D, E, G, H...)
-  region       String?
-  phone        String?
-  photoUrl     String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  candidacies  Candidacy[]
-  voteRecords  VoteRecord[]
-  otps         Otp[]
-  auditLogs    AuditLog[]   @relation("ActorLogs")
-
-  @@index([role])
-  @@index([status])
-}
-
-model Election {
-  id              String         @id @default(cuid())
-  title           String
-  description     String?
-  status          ElectionStatus @default(BROUILLON)
-  majorityRule    MajorityRule   @default(RELATIVE)
-  totalRounds     Int            @default(1)
-  currentRound    Int            @default(1)
-  startAt         DateTime
-  endAt           DateTime
-  eligibleSection String? // Restreindre à une section, sinon tous
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  positions    Position[]
-  ballots      Ballot[]
-  voteRecords  VoteRecord[]
-
-  @@index([status])
-}
-
-model Position {
-  id          String     @id @default(cuid())
-  electionId  String
-  election    Election   @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  title       String // ex: Président, Trésorier, Membre du bureau
-  description String?
-  seats       Int        @default(1) // Nombre de sièges à pourvoir
-  order       Int        @default(0)
-
-  candidacies Candidacy[]
-
-  @@index([electionId])
-}
-
-model Candidacy {
-  id          String          @id @default(cuid())
-  positionId  String
-  position    Position        @relation(fields: [positionId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status      CandidacyStatus @default(SOUMISE)
-  // Profil public du candidat
-  profession  String?
-  age         Int?
-  biography   String?
-  photoUrl    String?
-  videoUrl    String?
-  // Dossier de candidature
-  program     String? // Profession de foi / programme
-  documentUrl String?
-  reviewNote  String? // Note de la commission en cas de rejet
-  submittedAt DateTime        @default(now())
-  reviewedAt  DateTime?
-
-  @@unique([positionId, userId])
-  @@index([status])
-}
-
-// Bulletin chiffré (AES-256-GCM). Ne contient AUCUNE référence à l'électeur
-// afin de garantir le secret du vote.
-model Ballot {
-  id         String   @id @default(cuid())
-  electionId String
-  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  round      Int      @default(1)
-  ciphertext String // Contenu du bulletin chiffré
-  iv         String // Vecteur d'initialisation
-  authTag    String // Tag d'authentification GCM
-  createdAt  DateTime @default(now())
-
-  @@index([electionId, round])
-}
-
-// Émargement : prouve qu'un électeur a voté (anti double-vote) sans lien
-// avec le contenu de son bulletin.
-model VoteRecord {
-  id         String   @id @default(cuid())
-  electionId String
-  election   Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  round      Int      @default(1)
-  votedAt    DateTime @default(now())
-
-  @@unique([electionId, userId, round])
-  @@index([electionId, round])
-}
-
-model Otp {
-  id        String     @id @default(cuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  codeHash  String
-  purpose   OtpPurpose
-  context   String? // ex: id de l'élection pour un OTP de vote
-  expiresAt DateTime
-  consumed  Boolean    @default(false)
-  attempts  Int        @default(0)
-  createdAt DateTime   @default(now())
-
-  @@index([userId, purpose])
-}
-
-model AuditLog {
-  id        String   @id @default(cuid())
-  actorId   String?
-  actor     User?    @relation("ActorLogs", fields: [actorId], references: [id], onDelete: SetNull)
-  action    String // ex: LOGIN, VOTE_CAST, CANDIDACY_VALIDATED
-  entity    String? // ex: Election, Candidacy
-  entityId  String?
-  meta      Json?
-  ip        String?
-  createdAt DateTime @default(now())
-
-  @@index([action])
-  @@index([createdAt])
 }

@@ -23,12 +23,13 @@ export class VotesService {
    * Vérifier si un électeur a déjà voté pour un scrutin/tour donné.
    */
   async hasVoted(
+    organizationId: string,
     electionId: string,
     userId: string,
     round?: number,
   ): Promise<{ hasVoted: boolean; round: number }> {
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
+    const election = await this.prisma.election.findFirst({
+      where: { id: electionId, organizationId },
     });
     if (!election)
       throw new NotFoundException(`Élection ${electionId} introuvable.`);
@@ -48,13 +49,14 @@ export class VotesService {
    * Chiffre le bulletin en AES-256-GCM, enregistre l'émargement séparément.
    */
   async castVote(
+    organizationId: string,
     dto: CastVoteDto,
     userId: string,
     ip?: string,
   ): Promise<{ message: string }> {
     // 1. Charger et vérifier l'élection
-    const election = await this.prisma.election.findUnique({
-      where: { id: dto.electionId },
+    const election = await this.prisma.election.findFirst({
+      where: { id: dto.electionId, organizationId },
       include: { positions: true },
     });
     if (!election) throw new NotFoundException('Élection introuvable.');
@@ -63,7 +65,9 @@ export class VotesService {
     }
 
     // 2. Vérifier l'éligibilité de l'électeur
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, organizationId },
+    });
     if (!user || !user.isEligible || user.status !== 'ACTIF') {
       throw new ForbiddenException("Vous n'êtes pas éligible à voter.");
     }
@@ -98,6 +102,7 @@ export class VotesService {
         entity: 'Election',
         entityId: dto.electionId,
         ip,
+        organizationId,
       });
       throw new ForbiddenException('Code OTP de vote invalide ou expiré.');
     }
@@ -126,6 +131,7 @@ export class VotesService {
       this.prisma.ballot.create({
         data: {
           electionId: dto.electionId,
+          organizationId,
           round,
           ciphertext: encrypted.ciphertext,
           iv: encrypted.iv,
@@ -133,7 +139,7 @@ export class VotesService {
         },
       }),
       this.prisma.voteRecord.create({
-        data: { electionId: dto.electionId, userId, round },
+        data: { electionId: dto.electionId, organizationId, userId, round },
       }),
     ]);
 
@@ -144,6 +150,7 @@ export class VotesService {
       entityId: dto.electionId,
       meta: { round },
       ip,
+      organizationId,
     });
 
     return { message: 'Vote enregistré avec succès.' };
@@ -153,11 +160,12 @@ export class VotesService {
    * Demander un OTP avant de voter.
    */
   async requestVoteOtp(
+    organizationId: string,
     electionId: string,
     userId: string,
   ): Promise<{ message: string }> {
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
+    const election = await this.prisma.election.findFirst({
+      where: { id: electionId, organizationId },
     });
     if (!election) throw new NotFoundException('Élection introuvable.');
     if (election.status !== 'OUVERT') {

@@ -47,9 +47,13 @@ export class TallyService {
     private audit: AuditService,
   ) {}
 
-  async computeTally(electionId: string, round?: number): Promise<TallyResult> {
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
+  async computeTally(
+    organizationId: string,
+    electionId: string,
+    round?: number,
+  ): Promise<TallyResult> {
+    const election = await this.prisma.election.findFirst({
+      where: { id: electionId, organizationId },
       include: {
         positions: {
           orderBy: { order: 'asc' },
@@ -68,11 +72,12 @@ export class TallyService {
     const r = round ?? election.currentRound;
 
     const ballots = await this.prisma.ballot.findMany({
-      where: { electionId, round: r },
+      where: { electionId, organizationId, round: r },
     });
 
     const eligibleCount = await this.prisma.user.count({
       where: {
+        organizationId,
         isEligible: true,
         status: 'ACTIF',
         ...(election.eligibleSection
@@ -173,12 +178,13 @@ export class TallyService {
    * Effectuer le dépouillement officiel et passer l'élection à DEPOUILLE/PUBLIE.
    */
   async runTally(
+    organizationId: string,
     electionId: string,
     publish: boolean,
     actorId: string,
   ): Promise<TallyResult> {
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
+    const election = await this.prisma.election.findFirst({
+      where: { id: electionId, organizationId },
     });
     if (!election)
       throw new NotFoundException(`Élection ${electionId} introuvable.`);
@@ -188,7 +194,7 @@ export class TallyService {
       );
     }
 
-    const result = await this.computeTally(electionId);
+    const result = await this.computeTally(organizationId, electionId);
 
     const newStatus = publish ? 'PUBLIE' : 'DEPOUILLE';
     await this.prisma.election.update({
@@ -206,6 +212,7 @@ export class TallyService {
         ballotsCount: result.ballotsCount,
         turnout: result.turnout,
       },
+      organizationId,
     });
 
     return result;
@@ -214,9 +221,12 @@ export class TallyService {
   /**
    * Récupérer les résultats d'une élection dépouillée.
    */
-  async getResults(electionId: string): Promise<TallyResult> {
-    const election = await this.prisma.election.findUnique({
-      where: { id: electionId },
+  async getResults(
+    organizationId: string,
+    electionId: string,
+  ): Promise<TallyResult> {
+    const election = await this.prisma.election.findFirst({
+      where: { id: electionId, organizationId },
     });
     if (!election)
       throw new NotFoundException(`Élection ${electionId} introuvable.`);
@@ -225,6 +235,6 @@ export class TallyService {
         'Les résultats ne sont pas encore disponibles.',
       );
     }
-    return this.computeTally(electionId);
+    return this.computeTally(organizationId, electionId);
   }
 }

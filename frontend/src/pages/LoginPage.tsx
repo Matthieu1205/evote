@@ -8,6 +8,7 @@ export default function LoginPage() {
   const { login } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1);
+  const [organizationSlug, setOrganizationSlug] = useState('');
   const [ordreNumber, setOrdreNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -27,7 +28,7 @@ export default function LoginPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ordreNumber, password }),
+        body: JSON.stringify({ organizationSlug, ordreNumber, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -52,7 +53,7 @@ export default function LoginPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ordreNumber, password, otp }),
+        body: JSON.stringify({ organizationSlug, ordreNumber, password, otp }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -90,7 +91,7 @@ export default function LoginPage() {
             Votre voix compte, en toute confidentialité.
           </h1>
           <p className="mt-4 max-w-md text-white/80">
-            Connexion réservée aux pharmaciens habilités. Authentification forte
+            Connexion sécurisée à votre espace membre. Authentification forte
             par mot de passe et code à usage unique.
           </p>
         </div>
@@ -108,7 +109,7 @@ export default function LoginPage() {
           <h2 className="text-2xl font-bold text-ink-900">Connexion</h2>
           <p className="mt-1 text-sm text-ink-500">
             {step === 1
-              ? "Saisissez votre numéro d'Ordre et votre mot de passe."
+              ? 'Saisissez vos identifiants pour accéder à votre espace.'
               : 'Saisissez le code à usage unique qui vous a été envoyé.'}
           </p>
 
@@ -126,7 +127,17 @@ export default function LoginPage() {
           {step === 1 ? (
             <form onSubmit={requestOtp} className="mt-6">
               <div className="field">
-                <label className="label">Numéro d'inscription à l'Ordre</label>
+                <label className="label">Organisation</label>
+                <input
+                  className="input"
+                  value={organizationSlug}
+                  onChange={(e) => setOrganizationSlug(e.target.value)}
+                  placeholder="ex : ordre-pharmaciens"
+                  required
+                />
+              </div>
+              <div className="field">
+                <label className="label">Numéro d'inscription</label>
                 <input
                   className="input"
                   value={ordreNumber}
@@ -203,11 +214,6 @@ export default function LoginPage() {
               </button>
             </form>
           )}
-
-          <p className="mt-8 text-center text-xs text-ink-400">
-            Comptes de démonstration (mot de passe Pharma2026!) : ADMIN-001,
-            COM-001, OBS-001, PH-1000…PH-1059
-          </p>
         </div>
       </div>
     </div>

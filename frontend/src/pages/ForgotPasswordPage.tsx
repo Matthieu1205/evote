@@ -6,6 +6,7 @@ const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [organizationSlug, setOrganizationSlug] = useState('');
   const [ordreNumber, setOrdreNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -24,7 +25,7 @@ export default function ForgotPasswordPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ordreNumber }),
+        body: JSON.stringify({ organizationSlug, ordreNumber }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -55,7 +56,7 @@ export default function ForgotPasswordPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ordreNumber, otp, newPassword }),
+        body: JSON.stringify({ organizationSlug, ordreNumber, otp, newPassword }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((d as any).message ?? 'Code invalide ou expiré.');
@@ -126,7 +127,7 @@ export default function ForgotPasswordPage() {
               </h2>
               <p className="mt-1 text-sm text-ink-500">
                 {step === 1
-                  ? "Saisissez votre numéro d'Ordre pour recevoir un code de réinitialisation."
+                  ? "Saisissez votre organisation et votre numéro d'inscription pour recevoir un code de réinitialisation."
                   : `Code envoyé à l'adresse email de ${ordreNumber}. Saisissez-le ci-dessous.`}
               </p>
 
@@ -139,7 +140,18 @@ export default function ForgotPasswordPage() {
               {step === 1 ? (
                 <form onSubmit={handleRequest} className="mt-6 space-y-4">
                   <div>
-                    <label htmlFor="fp-ordre" className="label">Numéro d'inscription à l'Ordre</label>
+                    <label htmlFor="fp-org" className="label">Organisation</label>
+                    <input
+                      id="fp-org"
+                      className="input"
+                      value={organizationSlug}
+                      onChange={(e) => setOrganizationSlug(e.target.value)}
+                      placeholder="ex : ordre-pharmaciens"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="fp-ordre" className="label">Numéro d'inscription</label>
                     <input
                       id="fp-ordre"
                       className="input"

@@ -22,17 +22,20 @@ export class UsersService {
     private crypto: CryptoService,
   ) {}
 
-  async findAll(params: {
-    role?: Role;
-    status?: MemberStatus;
-    search?: string;
-    page?: number;
-    limit?: number;
-  }) {
+  async findAll(
+    organizationId: string,
+    params: {
+      role?: Role;
+      status?: MemberStatus;
+      search?: string;
+      page?: number;
+      limit?: number;
+    },
+  ) {
     const { role, status, search, page = 1, limit = 20 } = params;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.UserWhereInput = {};
+    const where: Prisma.UserWhereInput = { organizationId };
     if (role) where.role = role;
     if (status) where.status = status;
     if (search) {
@@ -75,9 +78,9 @@ export class UsersService {
     };
   }
 
-  async findOne(id: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
+  async findOne(organizationId: string, id: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { id, organizationId },
       select: {
         id: true,
         ordreNumber: true,
@@ -98,10 +101,17 @@ export class UsersService {
     return user;
   }
 
-  async create(dto: CreateUserDto, actorId?: string): Promise<object> {
-    // Vérifier unicité
+  async create(
+    organizationId: string,
+    dto: CreateUserDto,
+    actorId?: string,
+  ): Promise<object> {
+    // Vérifier unicité au sein de l'organisation
     const existing = await this.prisma.user.findFirst({
-      where: { OR: [{ email: dto.email }, { ordreNumber: dto.ordreNumber }] },
+      where: {
+        organizationId,
+        OR: [{ email: dto.email }, { ordreNumber: dto.ordreNumber }],
+      },
     });
     if (existing)
       throw new ConflictException("Email ou numéro d'ordre déjà utilisé.");
@@ -111,6 +121,7 @@ export class UsersService {
 
     const user = await this.prisma.user.create({
       data: {
+        organizationId,
         ordreNumber: dto.ordreNumber,
         email: dto.email,
         firstName: dto.firstName,
@@ -130,6 +141,7 @@ export class UsersService {
       action: 'USER_CREATED',
       entity: 'User',
       entityId: user.id,
+      organizationId,
     });
 
     // Tenter d'envoyer l'email de bienvenue (ne bloque pas si SMTP non configuré)
@@ -149,11 +161,12 @@ export class UsersService {
   }
 
   async update(
+    organizationId: string,
     id: string,
     dto: UpdateUserDto,
     actorId?: string,
   ): Promise<object> {
-    await this.findOne(id); // Vérifie l'existence
+    await this.findOne(organizationId, id); // Vérifie l'existence + l'appartenance
 
     const { password, ...fields } = dto;
     const updateData: Prisma.UserUpdateInput = { ...fields };
@@ -172,6 +185,7 @@ export class UsersService {
       action: 'USER_UPDATED',
       entity: 'User',
       entityId: id,
+      organizationId,
     });
 
     const { passwordHash: _passwordHash, ...result } = user;
@@ -179,10 +193,13 @@ export class UsersService {
   }
 
   async resetPassword(
+    organizationId: string,
     id: string,
     actorId?: string,
   ): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+    const user = await this.prisma.user.findFirst({
+      where: { id, organizationId },
+    });
     if (!user) throw new NotFoundException('Utilisateur introuvable.');
 
     const tempPassword = this.crypto.randomPassword(12);
@@ -195,6 +212,7 @@ export class UsersService {
       action: 'PASSWORD_RESET',
       entity: 'User',
       entityId: id,
+      organizationId,
     });
 
     try {
@@ -216,20 +234,26 @@ export class UsersService {
     };
   }
 
-  async remove(id: string, actorId?: string): Promise<{ message: string }> {
-    await this.findOne(id);
+  async remove(
+    organizationId: string,
+    id: string,
+    actorId?: string,
+  ): Promise<{ message: string }> {
+    await this.findOne(organizationId, id);
     await this.prisma.user.delete({ where: { id } });
     await this.audit.log({
       actorId,
       action: 'USER_DELETED',
       entity: 'User',
       entityId: id,
+      organizationId,
     });
     return { message: 'Utilisateur supprimé.' };
   }
 
-  async exportCsv(): Promise<string> {
+  async exportCsv(organizationId: string): Promise<string> {
     const users = await this.prisma.user.findMany({
+      where: { organizationId },
       orderBy: { lastName: 'asc' },
       select: {
         ordreNumber: true,

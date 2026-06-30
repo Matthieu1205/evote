@@ -5,5 +5,6 @@ declare module 'express-session' {
     userId?: string;
     role?: string;
     ordreNumber?: string;
+    organizationId?: string;
   }
 }

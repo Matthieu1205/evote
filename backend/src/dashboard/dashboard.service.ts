@@ -13,7 +13,7 @@ export class DashboardService {
    * GET /api/dashboard/stats
    * Statistiques générales de la plateforme.
    */
-  async getStats() {
+  async getStats(organizationId: string) {
     const [
       totalMembers,
       activeMembers,
@@ -24,14 +24,22 @@ export class DashboardService {
       pendingCandidacies,
       totalVotes,
     ] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.user.count({ where: { status: 'ACTIF' } }),
-      this.prisma.user.count({ where: { isEligible: true, status: 'ACTIF' } }),
-      this.prisma.election.count(),
-      this.prisma.election.count({ where: { status: 'OUVERT' } }),
-      this.prisma.candidacy.count(),
-      this.prisma.candidacy.count({ where: { status: 'SOUMISE' } }),
-      this.prisma.voteRecord.count(),
+      this.prisma.user.count({ where: { organizationId } }),
+      this.prisma.user.count({
+        where: { organizationId, status: 'ACTIF' },
+      }),
+      this.prisma.user.count({
+        where: { organizationId, isEligible: true, status: 'ACTIF' },
+      }),
+      this.prisma.election.count({ where: { organizationId } }),
+      this.prisma.election.count({
+        where: { organizationId, status: 'OUVERT' },
+      }),
+      this.prisma.candidacy.count({ where: { organizationId } }),
+      this.prisma.candidacy.count({
+        where: { organizationId, status: 'SOUMISE' },
+      }),
+      this.prisma.voteRecord.count({ where: { organizationId } }),
     ]);
 
     return {
@@ -50,28 +58,32 @@ export class DashboardService {
    * GET /api/dashboard/charts
    * Données pour les graphiques du tableau de bord.
    */
-  async getCharts() {
+  async getCharts(organizationId: string) {
     // Membres par rôle
     const membersByRole = await this.prisma.user.groupBy({
       by: ['role'],
+      where: { organizationId },
       _count: { id: true },
     });
 
     // Membres par statut
     const membersByStatus = await this.prisma.user.groupBy({
       by: ['status'],
+      where: { organizationId },
       _count: { id: true },
     });
 
     // Élections par statut
     const electionsByStatus = await this.prisma.election.groupBy({
       by: ['status'],
+      where: { organizationId },
       _count: { id: true },
     });
 
     // Candidatures par statut
     const candidaciesByStatus = await this.prisma.candidacy.groupBy({
       by: ['status'],
+      where: { organizationId },
       _count: { id: true },
     });
 
@@ -80,7 +92,7 @@ export class DashboardService {
     // Votes des 24 dernières heures (par heure)
     const h24Ago = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const votesH24 = await this.prisma.voteRecord.findMany({
-      where: { votedAt: { gte: h24Ago } },
+      where: { organizationId, votedAt: { gte: h24Ago } },
       select: { votedAt: true },
     });
     const byHourMap: Record<string, number> = {};
@@ -96,7 +108,7 @@ export class DashboardService {
     const d7Ago = new Date(now);
     d7Ago.setDate(d7Ago.getDate() - 7);
     const votes7d = await this.prisma.voteRecord.findMany({
-      where: { votedAt: { gte: d7Ago } },
+      where: { organizationId, votedAt: { gte: d7Ago } },
       select: { votedAt: true },
       orderBy: { votedAt: 'asc' },
     });
@@ -135,9 +147,12 @@ export class DashboardService {
    * GET /api/dashboard/live-scores
    * Scores en direct pour les élections ouvertes (OUVERT ou DEPOUILLE).
    */
-  async getLiveScores() {
+  async getLiveScores(organizationId: string) {
     const openElections = await this.prisma.election.findMany({
-      where: { status: { in: ['OUVERT', 'DEPOUILLE', 'PUBLIE'] } },
+      where: {
+        organizationId,
+        status: { in: ['OUVERT', 'DEPOUILLE', 'PUBLIE'] },
+      },
       select: { id: true, title: true, status: true, currentRound: true },
     });
 
@@ -146,10 +161,14 @@ export class DashboardService {
         try {
           // Calcul des scores sans déchiffrement complet (juste les tendances)
           const voteCount = await this.prisma.voteRecord.count({
-            where: { electionId: election.id, round: election.currentRound },
+            where: {
+              organizationId,
+              electionId: election.id,
+              round: election.currentRound,
+            },
           });
           const eligibleCount = await this.prisma.user.count({
-            where: { isEligible: true, status: 'ACTIF' },
+            where: { organizationId, isEligible: true, status: 'ACTIF' },
           });
 
           return {
@@ -174,8 +193,9 @@ export class DashboardService {
    * GET /api/dashboard/recent-activity
    * Activité récente (derniers logs d'audit).
    */
-  async getRecentActivity(limit = 10) {
+  async getRecentActivity(organizationId: string, limit = 10) {
     return this.prisma.auditLog.findMany({
+      where: { organizationId },
       take: limit,
       orderBy: { createdAt: 'desc' },
       include: {
