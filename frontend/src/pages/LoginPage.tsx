@@ -17,7 +17,9 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  const BASE = import.meta.env.PROD
+    ? '/api'
+    : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
   async function requestOtp(e: React.FormEvent) {
     e.preventDefault();
