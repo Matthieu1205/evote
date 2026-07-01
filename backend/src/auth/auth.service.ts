@@ -41,7 +41,7 @@ export class AuthService {
   async requestOtp(
     dto: RequestOtpDto,
     ip?: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; devCode?: string }> {
     const organizationId = await this.resolveOrganizationId(
       dto.organizationSlug,
     );
@@ -84,8 +84,12 @@ export class AuthService {
       throw new UnauthorizedException('Ce compte est suspendu ou radié.');
     }
 
-    await this.otp.issueOtp(user.id, 'LOGIN');
-    return { message: 'Code OTP envoyé par email.' };
+    const { code } = await this.otp.issueOtp(user.id, 'LOGIN');
+    const exposeCode = process.env.OTP_EXPOSE_CODE === 'true';
+    return {
+      message: 'Code OTP envoyé par email.',
+      ...(exposeCode ? { devCode: code } : {}),
+    };
   }
 
   /**
