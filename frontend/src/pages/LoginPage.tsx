@@ -60,8 +60,9 @@ export default function LoginPage() {
         setError((data as { error?: string }).error ?? 'Identifiants ou code OTP invalides.');
         return;
       }
-      login(data as any);
-      navigate('/dashboard');
+      const userData = data as any;
+      login(userData);
+      navigate(userData.role === 'SUPER_ADMIN' ? '/platform' : '/dashboard');
     } catch {
       setError('Une erreur réseau est survenue. Réessayez.');
     } finally {
