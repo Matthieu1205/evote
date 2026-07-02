@@ -10,7 +10,7 @@ model Organization {
   id           String   @id @default(cuid())
   slug         String   @unique
   name         String
-  memberLabel  String   @default("Numéro d'inscription à l'Ordre")
+  memberLabel  String   @default("Numéro de membre")
   logoUrl      String?
   primaryColor String?
   isPlatform   Boolean  @default(false)

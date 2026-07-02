@@ -31,6 +31,7 @@ export default function PlatformOrganizations() {
   const [adminError, setAdminError] = useState<string | null>(null);
 
   const [toast, setToast] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -41,8 +42,9 @@ export default function PlatformOrganizations() {
     try {
       const data = await api.get<Organization[]>('/organizations');
       setOrgs(data);
-    } catch {
-      /* ignore */
+      setLoadError(null);
+    } catch (err) {
+      setLoadError((err as Error).message ?? 'Impossible de charger les organisations.');
     }
   }, []);
 
@@ -114,6 +116,13 @@ export default function PlatformOrganizations() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8">
+        {loadError && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {loadError.includes('401') || loadError.includes('non authentifié') || loadError.includes('Unauthorized')
+              ? 'Session expirée. Veuillez vous reconnecter.'
+              : loadError}
+          </div>
+        )}
         <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-slate-500">
             {orgs.length} organisation{orgs.length > 1 ? 's' : ''} sur la plateforme.

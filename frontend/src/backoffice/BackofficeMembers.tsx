@@ -39,7 +39,9 @@ export default function BackofficeMembers() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const pageSize = 50;
-  const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  const BASE = import.meta.env.PROD
+    ? '/api'
+    : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
   function showToast(msg: string) {
     setToast(msg);

@@ -57,7 +57,13 @@ export class VotesService {
     // 1. Charger et vérifier l'élection
     const election = await this.prisma.election.findFirst({
       where: { id: dto.electionId, organizationId },
-      include: { positions: true },
+      include: {
+        positions: {
+          include: {
+            candidacies: { where: { status: 'VALIDEE' }, select: { id: true } },
+          },
+        },
+      },
     });
     if (!election) throw new NotFoundException('Élection introuvable.');
     if (election.status !== 'OUVERT') {
@@ -107,7 +113,10 @@ export class VotesService {
       throw new ForbiddenException('Code OTP de vote invalide ou expiré.');
     }
 
-    // 5. Valider les choix (positions valides, pas plus de sièges)
+    // 5. Valider les choix (positions valides, candidatures validées, pas plus de sièges)
+    const validCandidacyIds = new Set(
+      election.positions.flatMap((p) => p.candidacies.map((c) => c.id)),
+    );
     for (const [positionId, choices] of Object.entries(dto.choices)) {
       const position = election.positions.find((p) => p.id === positionId);
       if (!position) {
@@ -119,6 +128,13 @@ export class VotesService {
         throw new ForbiddenException(
           `Trop de choix pour le poste "${position.title}" (max ${position.seats}).`,
         );
+      }
+      for (const candidacyId of choices) {
+        if (!validCandidacyIds.has(candidacyId)) {
+          throw new ForbiddenException(
+            `Candidature ${candidacyId} invalide ou non validée.`,
+          );
+        }
       }
     }
 
