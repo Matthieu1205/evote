@@ -84,6 +84,10 @@ export class AuthService {
       throw new UnauthorizedException('Ce compte est suspendu ou radié.');
     }
 
+    const otpBypass = process.env.OTP_BYPASS === 'true';
+    if (otpBypass) {
+      return { message: 'Mode bypass — aucun OTP requis.' };
+    }
     const { code } = await this.otp.issueOtp(user.id, 'LOGIN');
     const exposeCode = process.env.OTP_EXPOSE_CODE === 'true';
     return {
@@ -138,17 +142,20 @@ export class AuthService {
       throw new UnauthorizedException('Ce compte est suspendu ou radié.');
     }
 
-    const okOtp = await this.otp.verifyOtp(user.id, 'LOGIN', dto.otp);
-    if (!okOtp) {
-      await this.audit.log({
-        actorId: user.id,
-        action: 'LOGIN_OTP_FAILED',
-        entity: 'User',
-        entityId: user.id,
-        ip,
-        organizationId: user.organizationId,
-      });
-      throw new UnauthorizedException('Code OTP invalide ou expiré.');
+    const otpBypass = process.env.OTP_BYPASS === 'true';
+    if (!otpBypass) {
+      const okOtp = await this.otp.verifyOtp(user.id, 'LOGIN', dto.otp ?? '');
+      if (!okOtp) {
+        await this.audit.log({
+          actorId: user.id,
+          action: 'LOGIN_OTP_FAILED',
+          entity: 'User',
+          entityId: user.id,
+          ip,
+          organizationId: user.organizationId,
+        });
+        throw new UnauthorizedException('Code OTP invalide ou expiré.');
+      }
     }
 
     // Créer la session.

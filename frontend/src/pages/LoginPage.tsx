@@ -37,7 +37,26 @@ export default function LoginPage() {
         setError((data as { error?: string }).error ?? 'Une erreur est survenue. Réessayez.');
         return;
       }
-      setDevCode((data as { devCode?: string }).devCode ?? null);
+      const d = data as { devCode?: string; bypass?: boolean };
+      // If backend is in bypass mode, skip OTP step and login directly
+      if ((d as any).message === 'Mode bypass — aucun OTP requis.') {
+        const loginRes = await fetch(`${BASE}/auth/login`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ organizationSlug, ordreNumber, password }),
+        });
+        const loginData = await loginRes.json().catch(() => ({}));
+        if (!loginRes.ok) {
+          setError((loginData as { error?: string }).error ?? 'Erreur de connexion.');
+          return;
+        }
+        const userData = loginData as any;
+        login(userData);
+        navigate(userData.role === 'SUPER_ADMIN' ? '/platform' : '/dashboard');
+        return;
+      }
+      setDevCode(d.devCode ?? null);
       setStep(2);
     } catch {
       setError('Une erreur réseau est survenue. Réessayez.');
