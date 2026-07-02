@@ -151,7 +151,7 @@ export default function BackofficeMembers() {
             </div>
           )}
           {[
-            { key: 'ordreNumber', label: "Numéro d'Ordre", req: true },
+            { key: 'ordreNumber', label: 'Numéro de membre', req: true },
             { key: 'firstName', label: 'Prénom', req: true },
             { key: 'lastName', label: 'Nom', req: true },
             { key: 'email', label: 'Email', req: true, type: 'email' },

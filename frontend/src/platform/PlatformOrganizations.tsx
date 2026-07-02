@@ -138,7 +138,7 @@ export default function PlatformOrganizations() {
               <label className="mb-1.5 block text-xs font-semibold text-slate-600">Slug (identifiant de connexion)</label>
               <input
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                placeholder="ex : ordre-pharmaciens"
+                placeholder="ex : mon-association"
                 value={orgForm.slug}
                 onChange={(e) => setOrgForm({ ...orgForm, slug: e.target.value })}
                 required
@@ -148,7 +148,7 @@ export default function PlatformOrganizations() {
               <label className="mb-1.5 block text-xs font-semibold text-slate-600">Nom</label>
               <input
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                placeholder="ex : Ordre des Pharmaciens"
+                placeholder="ex : Association des Jeunes"
                 value={orgForm.name}
                 onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })}
                 required
@@ -158,7 +158,7 @@ export default function PlatformOrganizations() {
               <label className="mb-1.5 block text-xs font-semibold text-slate-600">Libellé du numéro de membre (optionnel)</label>
               <input
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
-                placeholder="ex : Numéro d'inscription à l'Ordre"
+                placeholder="ex : Numéro de membre"
                 value={orgForm.memberLabel}
                 onChange={(e) => setOrgForm({ ...orgForm, memberLabel: e.target.value })}
               />

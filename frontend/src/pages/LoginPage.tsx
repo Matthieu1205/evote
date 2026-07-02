@@ -154,7 +154,7 @@ export default function LoginPage() {
                   className="input"
                   value={organizationSlug}
                   onChange={(e) => setOrganizationSlug(e.target.value)}
-                  placeholder="ex : ordre-pharmaciens"
+                  placeholder="ex : mon-organisation"
                   required
                 />
               </div>
@@ -164,7 +164,7 @@ export default function LoginPage() {
                   className="input"
                   value={ordreNumber}
                   onChange={(e) => setOrdreNumber(e.target.value)}
-                  placeholder="ex : PH-1000"
+                  placeholder="ex : MEMBRE-001"
                   required
                 />
               </div>

@@ -146,7 +146,7 @@ export default function AdminMembresPage() {
             </div>
           )}
           <div>
-            <label className="label">Numéro d'Ordre</label>
+            <label className="label">Numéro de membre</label>
             <input className="input" value={form.ordreNumber} onChange={(e) => setForm({ ...form, ordreNumber: e.target.value })} required />
           </div>
           <div>

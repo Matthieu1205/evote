@@ -60,7 +60,7 @@ export class EmailService {
 <body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:40px 0;">
   <div style="max-width:480px;margin:auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);">
     <div style="background:#1a3a5c;padding:24px 32px;">
-      <h1 style="color:#fff;margin:0;font-size:20px;">Ordre des Pharmaciens — eVote</h1>
+      <h1 style="color:#fff;margin:0;font-size:20px;">eVote</h1>
     </div>
     <div style="padding:32px;">
       <p style="margin:0 0 16px;">Bonjour <strong>${recipientName}</strong>,</p>
@@ -101,14 +101,14 @@ export class EmailService {
 <body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:40px 0;">
   <div style="max-width:480px;margin:auto;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);">
     <div style="background:#1a3a5c;padding:24px 32px;">
-      <h1 style="color:#fff;margin:0;font-size:20px;">Ordre des Pharmaciens — eVote</h1>
+      <h1 style="color:#fff;margin:0;font-size:20px;">eVote</h1>
     </div>
     <div style="padding:32px;">
       <p style="margin:0 0 16px;">Bonjour <strong>${recipientName}</strong>,</p>
       <p style="margin:0 0 16px;">Votre compte sur la plateforme de vote électronique a été créé.</p>
       <table style="width:100%;border-collapse:collapse;margin:0 0 24px;">
         <tr>
-          <td style="padding:8px 12px;background:#f0f4ff;border:1px solid #dde5f0;font-weight:bold;width:40%;">Numéro d'ordre</td>
+          <td style="padding:8px 12px;background:#f0f4ff;border:1px solid #dde5f0;font-weight:bold;width:40%;">Numéro de membre</td>
           <td style="padding:8px 12px;border:1px solid #dde5f0;">${ordreNumber}</td>
         </tr>
         <tr>
@@ -127,7 +127,7 @@ export class EmailService {
       to,
       subject: 'Bienvenue sur eVote — vos identifiants de connexion',
       html,
-      text: `Bonjour ${recipientName},\n\nVotre compte eVote a été créé.\nNuméro d'ordre : ${ordreNumber}\nMot de passe : ${tempPassword}\n\nChangez votre mot de passe dès la première connexion.\n\n${appUrl}/login`,
+      text: `Bonjour ${recipientName},\n\nVotre compte eVote a été créé.\nNuméro de membre : ${ordreNumber}\nMot de passe : ${tempPassword}\n\nChangez votre mot de passe dès la première connexion.\n\n${appUrl}/login`,
     });
   }
 
@@ -150,7 +150,7 @@ export class EmailService {
 <body style="font-family:Arial,sans-serif;background:#f4f4f4;padding:40px 0;">
   <div style="max-width:480px;margin:auto;background:#fff;border-radius:8px;">
     <div style="background:#1a3a5c;padding:24px 32px;">
-      <h1 style="color:#fff;margin:0;font-size:20px;">Ordre des Pharmaciens — eVote</h1>
+      <h1 style="color:#fff;margin:0;font-size:20px;">eVote</h1>
     </div>
     <div style="padding:32px;">
       <p>Bonjour <strong>${recipientName}</strong>,</p>

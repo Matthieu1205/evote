@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
         <div className="relative z-10">
           <h1 className="text-3xl font-bold leading-tight">Récupération de compte</h1>
           <p className="mt-4 max-w-md text-white/80">
-            Un code de vérification sera envoyé à l'adresse email associée à votre numéro d'Ordre.
+            Un code de vérification sera envoyé à l'adresse email associée à votre numéro de membre.
           </p>
         </div>
         <p className="relative z-10 text-sm text-white/50">
@@ -146,7 +146,7 @@ export default function ForgotPasswordPage() {
                       className="input"
                       value={organizationSlug}
                       onChange={(e) => setOrganizationSlug(e.target.value)}
-                      placeholder="ex : ordre-pharmaciens"
+                      placeholder="ex : mon-organisation"
                       required
                     />
                   </div>
@@ -157,7 +157,7 @@ export default function ForgotPasswordPage() {
                       className="input"
                       value={ordreNumber}
                       onChange={(e) => setOrdreNumber(e.target.value)}
-                      placeholder="ex : PH-1000"
+                      placeholder="ex : MEMBRE-001"
                       required
                     />
                   </div>
