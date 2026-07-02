@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
+import { EmailService } from '../common/email.service';
 import { CreateElectionDto } from './dto/create-election.dto';
 import { UpdateElectionDto } from './dto/update-election.dto';
 import { Prisma, ElectionStatus } from '@prisma/client';
@@ -14,6 +15,7 @@ export class ElectionsService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private email: EmailService,
   ) {}
 
   async findAll(
@@ -193,6 +195,20 @@ export class ElectionsService {
       entityId: id,
       organizationId,
     });
+
+    if (status === 'OUVERT') {
+      const loginUrl = `${process.env.FRONTEND_URL ?? 'https://evote-ashy.vercel.app'}/login`;
+      const voters = await this.prisma.user.findMany({
+        where: { organizationId, isEligible: true, status: 'ACTIF', role: 'ELECTEUR' },
+        select: { email: true, firstName: true, lastName: true },
+      });
+      for (const voter of voters) {
+        this.email
+          .sendElectionOpenEmail(voter.email, `${voter.firstName} ${voter.lastName}`, election.title, loginUrl)
+          .catch(() => {});
+      }
+    }
+
     return election;
   }
 }

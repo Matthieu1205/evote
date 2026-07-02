@@ -10,7 +10,12 @@ import {
   Res,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import type { Response } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -41,6 +46,18 @@ export class UsersController {
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
     });
+  }
+
+  @Roles(Role.ADMIN)
+  @Post('import')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }))
+  async importCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: SessionUser,
+  ) {
+    if (!file) throw new BadRequestException('Fichier CSV requis.');
+    const csvText = file.buffer.toString('utf-8');
+    return this.usersService.importCsv(user.organizationId, csvText, user.userId);
   }
 
   @Roles(Role.ADMIN)

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { BackofficeShell } from './BackofficeShell';
 import { Pagination } from '../components/Pagination';
 import { ROLE_LABELS } from '../lib/rbac';
@@ -38,6 +38,9 @@ export default function BackofficeMembers() {
   const [editingEmail, setEditingEmail] = useState<{ id: string; value: string } | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: { row: number; reason: string }[] } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const pageSize = 50;
   const BASE = import.meta.env.PROD
     ? '/api'
@@ -95,6 +98,34 @@ export default function BackofficeMembers() {
     }
   }
 
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const result = await api.postForm<{ created: number; skipped: number; errors: { row: number; reason: string }[] }>('/users/import', formData);
+      setImportResult(result);
+      if (result.created > 0) load();
+    } catch (err) {
+      setImportResult({ created: 0, skipped: 0, errors: [{ row: 0, reason: (err as Error).message ?? 'Erreur import' }] });
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function downloadTemplate() {
+    const csv = 'ordreNumber,prenom,nom,email,section,region,telephone,eligible\nMEMBRE-001,Jean,Dupont,jean@exemple.com,A,Nord,0600000001,oui\n';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'modele-import-membres.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <BackofficeShell>
       {toast && (
@@ -109,7 +140,14 @@ export default function BackofficeMembers() {
           <h1 className="text-2xl font-black text-slate-900">Membres</h1>
           <p className="mt-0.5 text-sm text-slate-500">Registre ordinal, statuts et éligibilité électorale.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <input ref={fileInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
+          <button type="button" onClick={downloadTemplate} className="bo-btn bo-btn-ghost" title="Télécharger le modèle CSV">
+            Modèle CSV
+          </button>
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={importing} className="bo-btn bo-btn-ghost">
+            {importing ? 'Import…' : 'Importer CSV'}
+          </button>
           <a href={`${BASE}/users/export`} className="bo-btn bo-btn-ghost">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -143,6 +181,28 @@ export default function BackofficeMembers() {
           </button>
         </div>
       </div>
+
+      {/* Résultat import CSV */}
+      {importResult && (
+        <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${importResult.errors.length > 0 && importResult.created === 0 ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+          <div className="flex items-center justify-between">
+            <span>
+              Import terminé — <strong>{importResult.created} créé{importResult.created > 1 ? 's' : ''}</strong>,{' '}
+              {importResult.skipped} ignoré{importResult.skipped > 1 ? 's' : ''} (déjà existants)
+              {importResult.errors.length > 0 && `, ${importResult.errors.length} erreur${importResult.errors.length > 1 ? 's' : ''}`}
+            </span>
+            <button type="button" onClick={() => setImportResult(null)} className="ml-4 text-inherit opacity-60 hover:opacity-100">✕</button>
+          </div>
+          {importResult.errors.length > 0 && (
+            <ul className="mt-2 list-disc pl-4 text-xs">
+              {importResult.errors.slice(0, 5).map((e) => (
+                <li key={e.row}>Ligne {e.row} : {e.reason}</li>
+              ))}
+              {importResult.errors.length > 5 && <li>…et {importResult.errors.length - 5} autres erreurs</li>}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Formulaire de création */}
       {showForm && (
