@@ -62,8 +62,6 @@ export class OtpService {
           `[OTP] Échec envoi email à ${recipient} :`,
           (err as Error).message,
         );
-        // En dev, le code est déjà loggé ci-dessus — la connexion peut continuer
-        if (process.env.NODE_ENV === 'production') throw err;
       }
     } else {
       console.log(`[OTP] ${purpose} pour ${userId} : ${code}`);
