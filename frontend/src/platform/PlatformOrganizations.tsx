@@ -29,6 +29,7 @@ export default function PlatformOrganizations() {
   const [adminTargetOrg, setAdminTargetOrg] = useState<Organization | null>(null);
   const [adminForm, setAdminForm] = useState({ ...emptyAdminForm });
   const [adminError, setAdminError] = useState<string | null>(null);
+  const [createdAdmin, setCreatedAdmin] = useState<{ ordreNumber: string; tempPassword: string; orgName: string } | null>(null);
 
   const [toast, setToast] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -82,8 +83,8 @@ export default function PlatformOrganizations() {
     if (!adminTargetOrg) return;
     setAdminError(null);
     try {
-      await api.post(`/organizations/${adminTargetOrg.id}/admins`, adminForm);
-      showToast(`Administrateur créé pour "${adminTargetOrg.name}".`);
+      const result = await api.post<{ ordreNumber: string; tempPassword: string }>(`/organizations/${adminTargetOrg.id}/admins`, adminForm);
+      setCreatedAdmin({ ordreNumber: result.ordreNumber, tempPassword: result.tempPassword, orgName: adminTargetOrg.name });
       setAdminTargetOrg(null);
       setAdminForm({ ...emptyAdminForm });
       load();
@@ -123,6 +124,21 @@ export default function PlatformOrganizations() {
               : loadError}
           </div>
         )}
+        {createdAdmin && (
+          <div className="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
+            <p className="font-semibold">Administrateur créé pour "{createdAdmin.orgName}" ✓</p>
+            <p className="mt-2">Conserve ces identifiants — ils ne seront plus affichés :</p>
+            <div className="mt-2 rounded-lg bg-white px-4 py-3 font-mono text-sm">
+              <p>Organisation&nbsp;: <b>{orgs.find(o => o.name === createdAdmin.orgName)?.slug}</b></p>
+              <p>Numéro&nbsp;: <b>{createdAdmin.ordreNumber}</b></p>
+              <p>Mot de passe&nbsp;: <b>{createdAdmin.tempPassword}</b></p>
+            </div>
+            <button type="button" onClick={() => setCreatedAdmin(null)} className="mt-3 text-xs underline text-emerald-700">
+              Fermer
+            </button>
+          </div>
+        )}
+
         <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-slate-500">
             {orgs.length} organisation{orgs.length > 1 ? 's' : ''} sur la plateforme.

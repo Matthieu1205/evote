@@ -166,6 +166,6 @@ export class OrganizationsService {
       .catch((e) => console.warn("[EMAIL] Impossible d'envoyer l'email de bienvenue:", e));
 
     const { passwordHash: _passwordHash, ...result } = user;
-    return result;
+    return { ...result, tempPassword };
   }
 }
