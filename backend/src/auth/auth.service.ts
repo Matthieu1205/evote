@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from '../common/password.service';
 import { OtpService } from '../common/otp.service';
@@ -158,7 +159,7 @@ export class AuthService {
       }
     }
 
-    // Créer la session.
+    // Créer la session (cookie, fonctionne en local).
     req.session.userId = user.id;
     req.session.role = user.role;
     req.session.ordreNumber = user.ordreNumber;
@@ -173,6 +174,19 @@ export class AuthService {
       organizationId: user.organizationId,
     });
 
+    // Générer un token signé (fallback cookie-less pour les proxies Vercel).
+    const secret = process.env.SESSION_SECRET || 'evote-secret-change-me';
+    const tokenPayload = {
+      userId: user.id,
+      role: user.role,
+      ordreNumber: user.ordreNumber,
+      organizationId: user.organizationId,
+      exp: Date.now() + 8 * 60 * 60 * 1000,
+    };
+    const data = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
+    const sig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+    const token = `${data}.${sig}`;
+
     return {
       id: user.id,
       firstName: user.firstName,
@@ -181,6 +195,7 @@ export class AuthService {
       role: user.role,
       ordreNumber: user.ordreNumber,
       status: user.status,
+      token,
       organization: {
         name: user.organization.name,
         slug: user.organization.slug,
