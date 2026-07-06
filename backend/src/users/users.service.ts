@@ -144,17 +144,9 @@ export class UsersService {
       organizationId,
     });
 
-    // Tenter d'envoyer l'email de bienvenue (ne bloque pas si SMTP non configuré)
-    try {
-      await this.email.sendWelcomeEmail(
-        user.email,
-        `${user.firstName} ${user.lastName}`,
-        user.ordreNumber,
-        tempPassword,
-      );
-    } catch (e) {
-      console.warn("[EMAIL] Impossible d'envoyer l'email de bienvenue:", e);
-    }
+    this.email
+      .sendWelcomeEmail(user.email, `${user.firstName} ${user.lastName}`, user.ordreNumber, tempPassword)
+      .catch((e) => console.warn("[EMAIL] Impossible d'envoyer l'email de bienvenue:", e));
 
     const { passwordHash: _passwordHash, ...result } = user;
     return result;
@@ -215,19 +207,9 @@ export class UsersService {
       organizationId,
     });
 
-    try {
-      await this.email.sendWelcomeEmail(
-        user.email,
-        `${user.firstName} ${user.lastName}`,
-        user.ordreNumber,
-        tempPassword,
-      );
-    } catch (e) {
-      console.warn(
-        "[EMAIL] Impossible d'envoyer le mot de passe réinitialisé:",
-        e,
-      );
-    }
+    this.email
+      .sendWelcomeEmail(user.email, `${user.firstName} ${user.lastName}`, user.ordreNumber, tempPassword)
+      .catch((e) => console.warn("[EMAIL] Impossible d'envoyer le mot de passe réinitialisé:", e));
 
     return {
       message: `Mot de passe réinitialisé. Un email a été envoyé à ${user.email}.`,

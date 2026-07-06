@@ -156,16 +156,14 @@ export class OrganizationsService {
       organizationId,
     });
 
-    try {
-      await this.email.sendWelcomeEmail(
+    this.email
+      .sendWelcomeEmail(
         user.email,
         `${user.firstName} ${user.lastName}`,
         user.ordreNumber,
         tempPassword,
-      );
-    } catch (e) {
-      console.warn("[EMAIL] Impossible d'envoyer l'email de bienvenue:", e);
-    }
+      )
+      .catch((e) => console.warn("[EMAIL] Impossible d'envoyer l'email de bienvenue:", e));
 
     const { passwordHash: _passwordHash, ...result } = user;
     return result;
