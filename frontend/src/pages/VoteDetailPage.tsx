@@ -107,16 +107,16 @@ export default function VoteDetailPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  function toggle(position: Position, userId: string) {
+  function toggle(position: Position, candidacyId: string) {
     setChoices((prev) => {
       const cur = prev[position.id] ?? [];
       let next: string[];
-      if (cur.includes(userId)) {
-        next = cur.filter((id) => id !== userId);
+      if (cur.includes(candidacyId)) {
+        next = cur.filter((id) => id !== candidacyId);
       } else if (position.seats === 1) {
-        next = [userId];
+        next = [candidacyId];
       } else if (cur.length < position.seats) {
-        next = [...cur, userId];
+        next = [...cur, candidacyId];
       } else {
         next = cur;
       }
@@ -317,13 +317,13 @@ export default function VoteDetailPage() {
                       <p className="px-5 py-4 text-sm text-ink-400">Aucun candidat validé.</p>
                     )}
                     {cands.map((c) => {
-                      const isSel = selected.includes(c.user.id);
+                      const isSel = selected.includes(c.id);
                       return (
                         <button
                           key={c.id}
                           type="button"
                           disabled={isLocked}
-                          onClick={() => toggle(p, c.user.id)}
+                          onClick={() => toggle(p, c.id)}
                           className={`flex w-full items-center gap-4 px-5 py-4 text-left transition ${
                             isSel ? 'bg-brand-50' : 'hover:bg-ink-50/60'
                           } ${isLocked ? 'cursor-default' : 'cursor-pointer'}`}
@@ -398,7 +398,7 @@ export default function VoteDetailPage() {
                       const cands = validCandidacies(p);
                       if (cands.length === 0) return null;
                       const sel = (choices[p.id] ?? [])
-                        .map((uid) => cands.find((c) => c.user.id === uid))
+                        .map((cid) => cands.find((c) => c.id === cid))
                         .filter(Boolean) as Candidacy[];
                       return (
                         <div key={p.id} className="rounded-xl bg-ink-50 px-3 py-2.5">
