@@ -179,7 +179,7 @@ export class VotesService {
     organizationId: string,
     electionId: string,
     userId: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; devCode?: string }> {
     const election = await this.prisma.election.findFirst({
       where: { id: electionId, organizationId },
     });
@@ -188,7 +188,11 @@ export class VotesService {
       throw new ForbiddenException("Cette élection n'est pas ouverte au vote.");
     }
 
-    await this.otp.issueOtp(userId, 'VOTE', electionId);
-    return { message: 'Code OTP de vote envoyé.' };
+    const { code } = await this.otp.issueOtp(userId, 'VOTE', electionId);
+    const exposeCode = process.env.OTP_EXPOSE_CODE === 'true';
+    return {
+      message: 'Code OTP de vote envoyé.',
+      ...(exposeCode ? { devCode: code } : {}),
+    };
   }
 }
