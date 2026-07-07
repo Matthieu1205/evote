@@ -61,9 +61,11 @@ export default function ProfilPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
+      const token = localStorage.getItem('evote_token');
       const res = await fetch(`${BASE}/upload`, {
         method: 'POST',
         credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: fd,
       });
       const data = await res.json();

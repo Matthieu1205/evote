@@ -58,7 +58,13 @@ function FileUploadField({ label, accept, type, value, onChange }: {
     const form = new FormData();
     form.append('file', file);
     form.append('type', type);
-    const res = await fetch(`${BASE}/upload`, { method: 'POST', credentials: 'include', body: form });
+    const token = localStorage.getItem('evote_token');
+    const res = await fetch(`${BASE}/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    });
     const data = await res.json();
     setUploading(false);
     if (!res.ok) {
