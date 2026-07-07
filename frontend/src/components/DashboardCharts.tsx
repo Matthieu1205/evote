@@ -19,12 +19,17 @@ export function DashboardCharts() {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
+    const base = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+    const token = localStorage.getItem('evote_token');
     try {
-      const res = await fetch(
-        (import.meta.env.VITE_API_URL || 'http://localhost:3001/api') + '/dashboard/charts',
-        { credentials: 'include' }
-      );
-      if (!res.ok) return;
+      const res = await fetch(`${base}/dashboard/charts`, {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        setData({ votesByHour: [], votesByDay: [] });
+        return;
+      }
       const raw = await res.json();
       setData({
         votesByHour: (raw.votesByHour ?? []).map((d: any) => ({
@@ -37,7 +42,9 @@ export function DashboardCharts() {
         })),
       });
       setLastRefresh(new Date());
-    } catch { /* silencieux */ }
+    } catch {
+      setData({ votesByHour: [], votesByDay: [] });
+    }
   }, []);
 
   useEffect(() => {

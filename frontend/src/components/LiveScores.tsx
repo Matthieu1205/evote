@@ -19,10 +19,12 @@ export function LiveScores() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(
-        (import.meta.env.VITE_API_URL || 'http://localhost:3001/api') + '/dashboard/live-scores',
-        { credentials: 'include' }
-      );
+      const base = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+      const token = localStorage.getItem('evote_token');
+      const res = await fetch(`${base}/dashboard/live-scores`, {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) { setLoading(false); return; }
       const data = await res.json();
       setElections(Array.isArray(data) ? data : []);

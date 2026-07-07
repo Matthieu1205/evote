@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ROLE_LABELS } from '../lib/rbac';
 import { api } from '../lib/api';
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
 const ROLE_COLORS: Record<string, string> = {
   ADMIN:       'bg-red-100 text-red-700',
