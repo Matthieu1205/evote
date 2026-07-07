@@ -63,7 +63,7 @@ export class UploadController {
       throw new BadRequestException('Photo trop grande (max 5 Mo).');
     }
 
-    const base = process.env.BACKEND_URL ?? 'http://localhost:3001';
+    const base = process.env.FRONTEND_URL ?? process.env.BACKEND_URL ?? 'http://localhost:3001';
     return { url: `${base}/uploads/${file.filename}` };
   }
 }
