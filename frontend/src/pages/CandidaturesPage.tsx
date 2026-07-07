@@ -35,7 +35,7 @@ interface MyCandidacy {
 
 type UploadState = { url: string; preview: string } | null;
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   SOUMISE:  { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'En attente' },

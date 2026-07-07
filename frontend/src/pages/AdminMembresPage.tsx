@@ -41,7 +41,7 @@ export default function AdminMembresPage() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [resetMsg, setResetMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null);
 
-  const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+  const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
   const load = useCallback(async () => {
     try {

@@ -37,7 +37,7 @@ interface Election {
 
 type Phase = 'ballot' | 'review' | 'otp' | 'done';
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
 const STEPS = [
   { key: 'ballot', label: 'Bulletin' },
@@ -124,6 +124,11 @@ export default function VoteDetailPage() {
     });
   }
 
+  function authHeader(): Record<string, string> {
+    const token = localStorage.getItem('evote_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
   async function startOtp() {
     setError(null);
     setSubmitting(true);
@@ -131,12 +136,18 @@ export default function VoteDetailPage() {
       const res = await fetch(`${BASE}/votes/request-otp/${electionId}`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError((data as { message?: string }).message ?? "Impossible d'envoyer le code OTP.");
+        return;
+      }
       setDevCode((data as { devCode?: string }).devCode ?? null);
       setPhase('otp');
-    } catch { /* ignore */ }
+    } catch {
+      setError('Une erreur réseau est survenue.');
+    }
     setSubmitting(false);
   }
 
@@ -147,12 +158,12 @@ export default function VoteDetailPage() {
       const res = await fetch(`${BASE}/votes`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader() },
         body: JSON.stringify({ electionId, otp, choices }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? "Le vote n'a pas pu être enregistré.");
+        setError((data as { message?: string }).message ?? "Le vote n'a pas pu être enregistré.");
         return;
       }
       setPhase('done');
@@ -462,7 +473,7 @@ export default function VoteDetailPage() {
                     type="button"
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
                     onClick={castVote}
-                    disabled={submitting || otp.length < 4}
+                    disabled={submitting || otp.length < 6}
                   >
                     {submitting ? (
                       <>

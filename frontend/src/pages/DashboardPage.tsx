@@ -137,7 +137,7 @@ export default function DashboardPage() {
       setStats({
         openCount: statsData?.elections?.open ?? 0,
         memberCount: statsData?.members?.active ?? 0,
-        myVotes: 0,
+        myVotes: statsData?.votes?.total ?? 0,
         totalElections: statsData?.elections?.total ?? 0,
         elections: raw.map((e: any) => ({
           id: e.id,
