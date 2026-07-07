@@ -188,7 +188,7 @@ export class UsersService {
     organizationId: string,
     id: string,
     actorId?: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; tempPassword: string }> {
     const user = await this.prisma.user.findFirst({
       where: { id, organizationId },
     });
@@ -213,6 +213,7 @@ export class UsersService {
 
     return {
       message: `Mot de passe réinitialisé. Un email a été envoyé à ${user.email}.`,
+      tempPassword,
     };
   }
 

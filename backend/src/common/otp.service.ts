@@ -51,7 +51,7 @@ export class OtpService {
       if (!user) throw new Error(`Utilisateur introuvable : ${userId}`);
       const name = `${user.firstName} ${user.lastName}`;
       const recipient = process.env.OTP_OVERRIDE_EMAIL ?? user.email;
-      const otpPurpose = purpose === 'LOGIN' ? 'LOGIN' : 'VOTE';
+      const otpPurpose = purpose;
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[OTP DEV] ${purpose} → ${recipient} : ${code}`);
       }

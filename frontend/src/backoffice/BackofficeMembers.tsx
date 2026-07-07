@@ -40,6 +40,7 @@ export default function BackofficeMembers() {
   const [toast, setToast] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: { row: number; reason: string }[] } | null>(null);
+  const [resettingId, setResettingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pageSize = 50;
   const BASE = import.meta.env.PROD
@@ -117,6 +118,37 @@ export default function BackofficeMembers() {
     }
   }
 
+  async function resetMemberPassword(id: string, name: string) {
+    if (!window.confirm(`Réinitialiser le mot de passe de ${name} ?`)) return;
+    setResettingId(id);
+    try {
+      const result = await api.post<{ tempPassword: string }>(`/users/${id}/reset-password`, {});
+      if (result.tempPassword) {
+        showToast(`Nouveau MDP : ${result.tempPassword}`);
+      } else {
+        showToast('Mot de passe réinitialisé — email envoyé.');
+      }
+    } catch (err) {
+      showToast((err as Error).message ?? 'Erreur lors de la réinitialisation.');
+    } finally {
+      setResettingId(null);
+    }
+  }
+
+  async function exportCsv() {
+    const token = localStorage.getItem('evote_token');
+    const res = await fetch(`${BASE}/users/export`, {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) { showToast('Erreur export CSV'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'membres.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function downloadTemplate() {
     const csv = 'ordreNumber,prenom,nom,email,section,region,telephone,eligible\nMEMBRE-001,Jean,Dupont,jean@exemple.com,A,Nord,0600000001,oui\n';
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -148,14 +180,14 @@ export default function BackofficeMembers() {
           <button type="button" onClick={() => fileInputRef.current?.click()} disabled={importing} className="bo-btn bo-btn-ghost">
             {importing ? 'Import…' : 'Importer CSV'}
           </button>
-          <a href={`${BASE}/users/export`} className="bo-btn bo-btn-ghost">
+          <button type="button" onClick={exportCsv} className="bo-btn bo-btn-ghost">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
             Exporter CSV
-          </a>
+          </button>
           <button
             type="button"
             onClick={() => setShowForm((s) => !s)}
@@ -267,6 +299,7 @@ export default function BackofficeMembers() {
                 <th className="px-5 py-3.5">Rôle</th>
                 <th className="px-5 py-3.5">Statut</th>
                 <th className="px-5 py-3.5">Éligible</th>
+                <th className="px-5 py-3.5"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -347,11 +380,22 @@ export default function BackofficeMembers() {
                       {m.isEligible ? '✓ Oui' : '— Non'}
                     </button>
                   </td>
+                  <td className="px-5 py-3.5">
+                    <button
+                      type="button"
+                      disabled={resettingId === m.id}
+                      onClick={() => resetMemberPassword(m.id, `${m.firstName} ${m.lastName}`)}
+                      className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50"
+                      title="Réinitialiser le mot de passe"
+                    >
+                      {resettingId === m.id ? '…' : 'MDP'}
+                    </button>
+                  </td>
                 </tr>
               ))}
               {members.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-slate-400">
+                  <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
                     Aucun membre trouvé.
                   </td>
                 </tr>

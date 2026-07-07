@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BackofficeShell } from './BackofficeShell';
+import { DashboardCharts } from '../components/DashboardCharts';
 import { api } from '../lib/api';
 
 interface Stats {
@@ -218,6 +219,8 @@ export default function BackofficeDashboard() {
           )}
         </div>
       </div>
+
+      <DashboardCharts />
 
       {/* Raccourcis */}
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
