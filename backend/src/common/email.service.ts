@@ -48,10 +48,12 @@ export class EmailService {
     to: string,
     recipientName: string,
     code: string,
-    purpose: 'LOGIN' | 'VOTE',
+    purpose: 'LOGIN' | 'VOTE' | 'RESET',
   ): Promise<void> {
     const label =
-      purpose === 'LOGIN' ? 'connexion à votre espace' : 'confirmation de vote';
+      purpose === 'LOGIN' ? 'connexion à votre espace'
+      : purpose === 'RESET' ? 'réinitialisation de mot de passe'
+      : 'confirmation de vote';
 
     const html = `
 <!DOCTYPE html>
