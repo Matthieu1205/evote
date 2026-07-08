@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Put, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { CandidaciesService } from './candidacies.service';
 import { CreateCandidacyDto } from './dto/create-candidacy.dto';
 import { ReviewCandidacyDto } from './dto/review-candidacy.dto';
+import { CreateConditionDto, UpdateConditionDto } from './dto/create-condition.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { SessionUser } from '../common/decorators/session-user.interface';
@@ -34,6 +35,37 @@ export class CandidaciesController {
       limit: limit ? parseInt(limit) : undefined,
     });
   }
+
+  // ─── Conditions (avant :id pour éviter le conflit de route) ─────────────
+
+  @Get('conditions')
+  getConditions(@CurrentUser() user: SessionUser) {
+    return this.candidaciesService.getConditions(user.organizationId);
+  }
+
+  @Roles(Role.ADMIN)
+  @Post('conditions')
+  createCondition(@Body() dto: CreateConditionDto, @CurrentUser() user: SessionUser) {
+    return this.candidaciesService.createCondition(user.organizationId, dto);
+  }
+
+  @Roles(Role.ADMIN)
+  @Put('conditions/:id')
+  updateCondition(
+    @Param('id') id: string,
+    @Body() dto: UpdateConditionDto,
+    @CurrentUser() user: SessionUser,
+  ) {
+    return this.candidaciesService.updateCondition(user.organizationId, id, dto);
+  }
+
+  @Roles(Role.ADMIN)
+  @Delete('conditions/:id')
+  deleteCondition(@Param('id') id: string, @CurrentUser() user: SessionUser) {
+    return this.candidaciesService.deleteCondition(user.organizationId, id);
+  }
+
+  // ─── Candidatures ─────────────────────────────────────────────────────────
 
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: SessionUser) {

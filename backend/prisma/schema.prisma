@@ -17,13 +17,14 @@ model Organization {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  users       User[]
-  elections   Election[]
-  positions   Position[]
-  candidacies Candidacy[]
-  ballots     Ballot[]
-  voteRecords VoteRecord[]
-  auditLogs   AuditLog[]
+  users                User[]
+  elections            Election[]
+  positions            Position[]
+  candidacies          Candidacy[]
+  ballots              Ballot[]
+  voteRecords          VoteRecord[]
+  auditLogs            AuditLog[]
+  candidacyConditions  CandidacyCondition[]
 
   @@index([isPlatform])
 }
@@ -184,6 +185,17 @@ model AuditLog {
 
   @@index([action])
   @@index([createdAt])
+  @@index([organizationId])
+}
+
+model CandidacyCondition {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  text           String
+  order          Int          @default(0)
+  createdAt      DateTime     @default(now())
+
   @@index([organizationId])
 }
 

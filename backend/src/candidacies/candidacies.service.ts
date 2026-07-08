@@ -10,6 +10,7 @@ import { EmailService } from '../common/email.service';
 import { CandidacyStatus, Prisma } from '@prisma/client';
 import { CreateCandidacyDto } from './dto/create-candidacy.dto';
 import { ReviewCandidacyDto } from './dto/review-candidacy.dto';
+import { CreateConditionDto, UpdateConditionDto } from './dto/create-condition.dto';
 
 @Injectable()
 export class CandidaciesService {
@@ -231,6 +232,41 @@ export class CandidaciesService {
     }
 
     return updated;
+  }
+
+  // ─── Conditions de candidature ───────────────────────────────────────────
+
+  async getConditions(organizationId: string) {
+    return this.prisma.candidacyCondition.findMany({
+      where: { organizationId },
+      orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+    });
+  }
+
+  async createCondition(organizationId: string, dto: CreateConditionDto) {
+    return this.prisma.candidacyCondition.create({
+      data: { organizationId, text: dto.text, order: dto.order ?? 0 },
+    });
+  }
+
+  async updateCondition(organizationId: string, id: string, dto: UpdateConditionDto) {
+    const existing = await this.prisma.candidacyCondition.findFirst({
+      where: { id, organizationId },
+    });
+    if (!existing) throw new NotFoundException(`Condition ${id} introuvable.`);
+    return this.prisma.candidacyCondition.update({
+      where: { id },
+      data: { ...(dto.text !== undefined && { text: dto.text }), ...(dto.order !== undefined && { order: dto.order }) },
+    });
+  }
+
+  async deleteCondition(organizationId: string, id: string) {
+    const existing = await this.prisma.candidacyCondition.findFirst({
+      where: { id, organizationId },
+    });
+    if (!existing) throw new NotFoundException(`Condition ${id} introuvable.`);
+    await this.prisma.candidacyCondition.delete({ where: { id } });
+    return { message: 'Condition supprimée.' };
   }
 
   async withdraw(organizationId: string, id: string, userId: string) {

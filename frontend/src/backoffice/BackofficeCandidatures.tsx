@@ -2,6 +2,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { BackofficeShell } from './BackofficeShell';
 import { api } from '../lib/api';
 
+interface Condition {
+  id: string;
+  text: string;
+}
+
 interface Candidacy {
   id: string;
   status: string;
@@ -29,6 +34,8 @@ export default function BackofficeCandidatures() {
   const [rejectNote, setRejectNote] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [checkedConditions, setCheckedConditions] = useState<Record<string, Set<string>>>({});
 
   const load = useCallback(async () => {
     try {
@@ -44,6 +51,18 @@ export default function BackofficeCandidatures() {
   }
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    api.get<Condition[]>('/candidacies/conditions').then(setConditions).catch(() => {});
+  }, []);
+
+  function toggleCondition(candidacyId: string, conditionId: string) {
+    setCheckedConditions((prev) => {
+      const set = new Set(prev[candidacyId] ?? []);
+      if (set.has(conditionId)) set.delete(conditionId); else set.add(conditionId);
+      return { ...prev, [candidacyId]: set };
+    });
+  }
 
   async function validate(id: string) {
     await api.put(`/candidacies/${id}/validate`, { note: '' });
@@ -168,6 +187,38 @@ export default function BackofficeCandidatures() {
                       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Programme / Profession de foi</p>
                       <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{c.program}</p>
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Checklist des conditions (visible lors de l'examen) */}
+              {expandedId === c.id && conditions.length > 0 && (
+                <div className="border-t border-slate-100 bg-amber-50 px-5 py-4">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wide text-amber-700">
+                    Vérification des conditions
+                  </p>
+                  <div className="space-y-2">
+                    {conditions.map((cond) => {
+                      const checked = checkedConditions[c.id]?.has(cond.id) ?? false;
+                      return (
+                        <label key={cond.id} className="flex cursor-pointer items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => toggleCondition(c.id, cond.id)}
+                            className="mt-0.5 h-4 w-4 rounded border-amber-300 accent-emerald-600"
+                          />
+                          <span className={`text-sm ${checked ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                            {cond.text}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {conditions.length > 0 && (
+                    <p className="mt-2 text-xs text-amber-600">
+                      {checkedConditions[c.id]?.size ?? 0} / {conditions.length} condition{conditions.length > 1 ? 's' : ''} vérifiée{conditions.length > 1 ? 's' : ''}
+                    </p>
                   )}
                 </div>
               )}

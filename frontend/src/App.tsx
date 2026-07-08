@@ -33,6 +33,7 @@ import BackofficeMembers from './backoffice/BackofficeMembers';
 import BackofficeElections from './backoffice/BackofficeElections';
 import BackofficeCandidatures from './backoffice/BackofficeCandidatures';
 import BackofficeAudit from './backoffice/BackofficeAudit';
+import BackofficeConditions from './backoffice/BackofficeConditions';
 import DashboardPage from './pages/DashboardPage';
 import VotePage from './pages/VotePage';
 import VoteDetailPage from './pages/VoteDetailPage';
@@ -187,6 +188,7 @@ function AppRoutes() {
       <Route path="/backoffice/scrutins" element={<BackofficeRoute><BackofficeElections /></BackofficeRoute>} />
       <Route path="/backoffice/candidatures" element={<BackofficeRoute><BackofficeCandidatures /></BackofficeRoute>} />
       <Route path="/backoffice/audit" element={<BackofficeRoute><BackofficeAudit /></BackofficeRoute>} />
+      <Route path="/backoffice/conditions" element={<BackofficeRoute><BackofficeConditions /></BackofficeRoute>} />
 
       {/* Plateforme — SUPER_ADMIN only */}
       <Route path="/platform" element={<PlatformRoute><PlatformOrganizations /></PlatformRoute>} />

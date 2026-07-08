@@ -29,8 +29,13 @@ import { OrganizationsModule } from './organizations/organizations.module';
     // Configuration (.env)
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // Rate limiting : 60 requêtes par minute par défaut
-    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 60 }]),
+    // Rate limiting — désactivé en développement local
+    ThrottlerModule.forRoot([{
+      name: 'default',
+      ttl: 60_000,
+      limit: process.env.NODE_ENV === 'development' ? 1000 : 60,
+      skipIf: () => process.env.NODE_ENV === 'development',
+    }]),
 
     // Infrastructure (globaux)
     PrismaModule,
