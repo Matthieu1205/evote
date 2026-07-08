@@ -17,6 +17,15 @@ const { Pool } = require('pg');
 /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
 
 async function bootstrap() {
+  // Validation des variables d'environnement critiques
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret === 'evote-secret-change-me') {
+    throw new Error(
+      '[FATAL] SESSION_SECRET non configuré ou valeur par défaut insécurisée. ' +
+      'Définissez une valeur aléatoire d\'au moins 32 caractères dans les variables d\'environnement.',
+    );
+  }
+
   const uploadsDir = join(process.cwd(), 'uploads');
   if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
 

@@ -6,13 +6,15 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
 import { mkdirSync, existsSync } from 'fs';
 
-const UPLOAD_DIR = join(process.cwd(), 'uploads');
-if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { diskStorage } = require('multer');
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 
 const ALLOWED = /^(image\/(jpeg|png|webp)|video\/(mp4|webm|quicktime))$/;
 const MAX_VIDEO = 80 * 1024 * 1024;
@@ -22,27 +24,65 @@ interface MulterFile {
   originalname: string;
   mimetype: string;
   size: number;
-  filename: string;
+  filename?: string;
+  path?: string;
+  // Cloudinary fields
+  secure_url?: string;
+  public_id?: string;
 }
 
 type FilenameCb = (err: Error | null, filename: string) => void;
 type FilterCb = (err: Error | null, accept: boolean) => void;
+
+const useCloudinary = !!(
+  process.env.CLOUDINARY_CLOUD_NAME &&
+  process.env.CLOUDINARY_API_KEY &&
+  process.env.CLOUDINARY_API_SECRET
+);
+
+// Configure Cloudinary si les variables sont présentes
+if (useCloudinary) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+
+// Stockage Cloudinary
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+const cloudinaryStorage = useCloudinary
+  ? new CloudinaryStorage({
+      cloudinary,
+      params: (req: unknown, file: MulterFile) => ({
+        folder: 'evote',
+        resource_type: file.mimetype.startsWith('video/') ? 'video' : 'image',
+        public_id: randomUUID(),
+      }),
+    })
+  : null;
+
+// Stockage disque local (fallback dev)
+const UPLOAD_DIR = join(process.cwd(), 'uploads');
+if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+const localStorage = diskStorage({
+  destination: UPLOAD_DIR,
+  filename: (_req: unknown, file: MulterFile, cb: FilenameCb) => {
+    const ext = extname(file.originalname).toLowerCase() || '.bin';
+    cb(null, `${randomUUID()}${ext}`);
+  },
+});
 
 @Controller('upload')
 export class UploadController {
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-      storage: diskStorage({
-        destination: UPLOAD_DIR,
-        filename: (_req, file: MulterFile, cb: FilenameCb) => {
-          const ext = extname(file.originalname).toLowerCase() || '.bin';
-          cb(null, `${randomUUID()}${ext}`);
-        },
-      }),
+      storage: useCloudinary ? cloudinaryStorage : localStorage,
       limits: { fileSize: MAX_VIDEO },
-      fileFilter: (_req, file: MulterFile, cb: FilterCb) => {
+      fileFilter: (_req: unknown, file: MulterFile, cb: FilterCb) => {
         if (!ALLOWED.test(file.mimetype)) {
           cb(
             new BadRequestException(
@@ -63,7 +103,13 @@ export class UploadController {
       throw new BadRequestException('Photo trop grande (max 5 Mo).');
     }
 
-    const base = process.env.FRONTEND_URL ?? process.env.BACKEND_URL ?? 'http://localhost:3001';
+    // Cloudinary retourne secure_url directement
+    if (useCloudinary && file.secure_url) {
+      return { url: file.secure_url };
+    }
+
+    // Fallback : URL locale via proxy Vercel
+    const base = process.env.FRONTEND_URL ?? 'http://localhost:3001';
     return { url: `${base}/uploads/${file.filename}` };
   }
 }

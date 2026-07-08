@@ -65,7 +65,7 @@ export default function BackofficeCandidatures() {
   }
 
   async function validate(id: string) {
-    await api.put(`/candidacies/${id}/validate`, { note: '' });
+    await api.put(`/candidacies/${id}/validate`, {});
     showToast('Candidature validée.');
     load();
   }
