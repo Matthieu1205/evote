@@ -87,4 +87,36 @@ export class ElectionsController {
   remove(@Param('id') id: string, @CurrentUser() user: SessionUser) {
     return this.electionsService.remove(user.organizationId, id, user.userId);
   }
+
+  @Roles(Role.ADMIN, Role.COMMISSION)
+  @Post(':id/positions')
+  addPosition(
+    @Param('id') id: string,
+    @Body() dto: { title: string; seats?: number },
+    @CurrentUser() user: SessionUser,
+  ) {
+    return this.electionsService.addPosition(user.organizationId, id, dto, user.userId);
+  }
+
+  @Roles(Role.ADMIN, Role.COMMISSION)
+  @Put(':id/positions/:posId')
+  updatePosition(
+    @Param('id') id: string,
+    @Param('posId') posId: string,
+    @Body() dto: { title?: string; seats?: number },
+    @CurrentUser() user: SessionUser,
+  ) {
+    return this.electionsService.updatePosition(user.organizationId, id, posId, dto);
+  }
+
+  @Roles(Role.ADMIN, Role.COMMISSION)
+  @Delete(':id/positions/:posId')
+  @HttpCode(HttpStatus.OK)
+  removePosition(
+    @Param('id') id: string,
+    @Param('posId') posId: string,
+    @CurrentUser() user: SessionUser,
+  ) {
+    return this.electionsService.removePosition(user.organizationId, id, posId, user.userId);
+  }
 }

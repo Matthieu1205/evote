@@ -50,6 +50,8 @@ const ACTION_COLORS: Record<string, string> = {
 export default function BackofficeAudit() {
   const [logs, setLogs] = useState<Log[]>([]);
   const [action, setAction] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -58,6 +60,8 @@ export default function BackofficeAudit() {
   useEffect(() => {
     const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
     if (action) params.set('action', action);
+    if (from) params.set('from', new Date(from).toISOString());
+    if (to) params.set('to', new Date(to + 'T23:59:59').toISOString());
     api.get<{ data: Log[]; meta: { pages: number; total: number } }>(`/audit?${params}`)
       .then((d) => {
         setLogs(d.data ?? []);
@@ -65,7 +69,7 @@ export default function BackofficeAudit() {
         setTotal(d.meta?.total ?? 0);
       })
       .catch(() => {});
-  }, [action, page]);
+  }, [action, from, to, page]);
 
   return (
     <BackofficeShell>
@@ -91,6 +95,32 @@ export default function BackofficeAudit() {
             ))}
           </select>
         </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold text-slate-500">Du</label>
+          <input
+            type="date"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-400 focus:outline-none"
+            value={from}
+            onChange={(e) => { setFrom(e.target.value); setPage(1); }}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold text-slate-500">Au</label>
+          <input
+            type="date"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-emerald-400 focus:outline-none"
+            value={to}
+            onChange={(e) => { setTo(e.target.value); setPage(1); }}
+          />
+        </div>
+        {(from || to || action) && (
+          <button
+            onClick={() => { setAction(''); setFrom(''); setTo(''); setPage(1); }}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+          >
+            Réinitialiser
+          </button>
+        )}
         {total > 0 && (
           <span className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-500">
             {total.toLocaleString('fr-FR')} entrée{total > 1 ? 's' : ''}

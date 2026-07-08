@@ -17,6 +17,8 @@ interface Election {
 
 interface PosForm { title: string; seats: number; }
 
+interface Position { id: string; title: string; seats: number; _count?: { candidacies: number }; }
+
 const STATUS_COLORS: Record<string, string> = {
   BROUILLON: 'bg-slate-100 text-slate-600',
   PLANIFIE: 'bg-blue-100 text-blue-700',
@@ -52,6 +54,10 @@ export default function BackofficeElections() {
   const [editForm, setEditForm] = useState({ title: '', description: '', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '' });
   const [editError, setEditError] = useState<string | null>(null);
   const [tallyingId, setTallyingId] = useState<string | null>(null);
+  const [managingPosId, setManagingPosId] = useState<string | null>(null);
+  const [existingPositions, setExistingPositions] = useState<Position[]>([]);
+  const [newPosForm, setNewPosForm] = useState({ title: '', seats: 1 });
+  const [posLoading, setPosLoading] = useState(false);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -149,6 +155,40 @@ export default function BackofficeElections() {
     await api.delete(`/elections/${id}`);
     showToast('Scrutin supprimé.');
     load();
+  }
+
+  async function openPositions(electionId: string) {
+    if (managingPosId === electionId) { setManagingPosId(null); return; }
+    setPosLoading(true);
+    setManagingPosId(electionId);
+    setNewPosForm({ title: '', seats: 1 });
+    try {
+      const data = await api.get<{ positions: Position[] }>(`/elections/${electionId}`);
+      setExistingPositions((data as any).positions ?? []);
+    } catch { /* ignore */ }
+    setPosLoading(false);
+  }
+
+  async function addPosition(electionId: string) {
+    if (!newPosForm.title.trim()) return;
+    try {
+      await api.post(`/elections/${electionId}/positions`, { title: newPosForm.title, seats: newPosForm.seats });
+      setNewPosForm({ title: '', seats: 1 });
+      const data = await api.get<any>(`/elections/${electionId}`);
+      setExistingPositions(data.positions ?? []);
+      showToast('Poste ajouté.');
+      load();
+    } catch (err) { alert((err as Error).message ?? 'Erreur'); }
+  }
+
+  async function deletePosition(electionId: string, posId: string) {
+    if (!confirm('Supprimer ce poste ?')) return;
+    try {
+      await api.delete(`/elections/${electionId}/positions/${posId}`);
+      setExistingPositions((prev) => prev.filter((p) => p.id !== posId));
+      showToast('Poste supprimé.');
+      load();
+    } catch (err) { alert((err as Error).message ?? 'Erreur'); }
   }
 
   return (
@@ -347,13 +387,23 @@ export default function BackofficeElections() {
                 )}
                 {['BROUILLON', 'PLANIFIE'].includes(e.status) && (
                   <button
+                    type="button"
                     onClick={() => editingId === e.id ? setEditingId(null) : startEdit(e)}
                     className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                    {editingId === e.id ? 'Annuler' : 'Modifier'}
+                    {editingId === e.id ? 'Annuler modif.' : 'Modifier'}
+                  </button>
+                )}
+                {['BROUILLON', 'PLANIFIE'].includes(e.status) && (
+                  <button
+                    type="button"
+                    onClick={() => openPositions(e.id)}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${managingPosId === e.id ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
+                    Postes ({e._count.positions})
                   </button>
                 )}
                 {e.status === 'BROUILLON' && (
                   <button
+                    type="button"
                     onClick={() => deleteElection(e.id, e.title)}
                     className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50">
                     Supprimer
@@ -361,6 +411,69 @@ export default function BackofficeElections() {
                 )}
               </div>
             </div>
+
+            {managingPosId === e.id && (
+              <div className="border-t border-slate-100 bg-slate-50 p-5">
+                <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-500">Postes à pourvoir</p>
+                {posLoading ? (
+                  <p className="text-sm text-slate-400">Chargement…</p>
+                ) : (
+                  <div className="space-y-2">
+                    {existingPositions.map((pos) => (
+                      <div key={pos.id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2.5">
+                        <div className="flex-1">
+                          <span className="text-sm font-medium text-slate-800">{pos.title}</span>
+                          <span className="ml-2 text-xs text-slate-400">{pos.seats} siège{pos.seats > 1 ? 's' : ''}</span>
+                        </div>
+                        {pos._count && pos._count.candidacies > 0 && (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">{pos._count.candidacies} candidat{pos._count.candidacies > 1 ? 's' : ''}</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => deletePosition(e.id, pos.id)}
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
+                          title="Supprimer ce poste"
+                        >
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4h6v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                    {existingPositions.length === 0 && (
+                      <p className="text-sm text-slate-400">Aucun poste défini.</p>
+                    )}
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                        placeholder="Intitulé du nouveau poste"
+                        value={newPosForm.title}
+                        onChange={(ev) => setNewPosForm({ ...newPosForm, title: ev.target.value })}
+                        onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); addPosition(e.id); } }}
+                        title="Titre du poste"
+                      />
+                      <input
+                        type="number" min={1}
+                        className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                        value={newPosForm.seats}
+                        onChange={(ev) => setNewPosForm({ ...newPosForm, seats: parseInt(ev.target.value) || 1 })}
+                        title="Nombre de sièges"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => addPosition(e.id)}
+                        className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                      >
+                        Ajouter
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {editingId === e.id && (
               <form onSubmit={saveEdit} className="border-t border-slate-100 bg-slate-50 p-5 space-y-4">

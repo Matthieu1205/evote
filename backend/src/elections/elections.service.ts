@@ -181,6 +181,61 @@ export class ElectionsService {
     return { message: 'Élection supprimée.' };
   }
 
+  async addPosition(
+    organizationId: string,
+    electionId: string,
+    dto: { title: string; seats?: number },
+    actorId?: string,
+  ) {
+    const election = await this.findOne(organizationId, electionId);
+    if (!['BROUILLON', 'PLANIFIE'].includes(election.status)) {
+      throw new BadRequestException("Impossible de modifier les postes d'un scrutin ouvert ou clos.");
+    }
+    const count = await this.prisma.position.count({ where: { electionId } });
+    const pos = await this.prisma.position.create({
+      data: { title: dto.title, seats: dto.seats ?? 1, electionId, organizationId, order: count },
+    });
+    await this.audit.log({ actorId, action: 'ELECTION_UPDATED', entity: 'Position', entityId: pos.id, organizationId });
+    return pos;
+  }
+
+  async updatePosition(
+    organizationId: string,
+    electionId: string,
+    posId: string,
+    dto: { title?: string; seats?: number },
+  ) {
+    await this.findOne(organizationId, electionId);
+    const pos = await this.prisma.position.findFirst({ where: { id: posId, electionId, organizationId } });
+    if (!pos) throw new NotFoundException('Poste introuvable.');
+    return this.prisma.position.update({
+      where: { id: posId },
+      data: {
+        ...(dto.title !== undefined ? { title: dto.title } : {}),
+        ...(dto.seats !== undefined ? { seats: dto.seats } : {}),
+      },
+    });
+  }
+
+  async removePosition(
+    organizationId: string,
+    electionId: string,
+    posId: string,
+    actorId?: string,
+  ) {
+    const election = await this.findOne(organizationId, electionId);
+    if (!['BROUILLON', 'PLANIFIE'].includes(election.status)) {
+      throw new BadRequestException("Impossible de supprimer un poste d'un scrutin ouvert ou clos.");
+    }
+    const pos = await this.prisma.position.findFirst({ where: { id: posId, electionId, organizationId } });
+    if (!pos) throw new NotFoundException('Poste introuvable.');
+    const cand = await this.prisma.candidacy.count({ where: { positionId: posId } });
+    if (cand > 0) throw new BadRequestException(`Ce poste a ${cand} candidature(s). Retirez-les d'abord.`);
+    await this.prisma.position.delete({ where: { id: posId } });
+    await this.audit.log({ actorId, action: 'ELECTION_UPDATED', entity: 'Position', entityId: posId, organizationId });
+    return { message: 'Poste supprimé.' };
+  }
+
   async changeStatus(
     organizationId: string,
     id: string,
