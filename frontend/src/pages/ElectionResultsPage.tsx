@@ -39,6 +39,71 @@ interface Election {
 
 const BASE_URL = (import.meta as any).env?.VITE_API_URL ?? 'http://localhost:3001';
 
+function printPV(election: Election, result: TallyResult) {
+  const date = new Date(result.computedAt).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
+  const positionsHtml = result.positions.map((pos) => {
+    const rows = pos.candidates.map((c, i) => `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-weight:600;">${i + 1}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;">${c.name}${c.elected ? ' <span style="background:#d1fae5;color:#065f46;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700;">ÉLU</span>' : ''}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${c.votes}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${c.percent.toFixed(1)}%</td>
+      </tr>
+    `).join('');
+    return `
+      <div style="margin-bottom:32px;">
+        <h3 style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 4px;">${pos.positionTitle}</h3>
+        <p style="font-size:12px;color:#64748b;margin:0 0 12px;">${pos.seats} siège${pos.seats > 1 ? 's' : ''} · ${pos.totalVotes} vote${pos.totalVotes !== 1 ? 's' : ''}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="background:#f8fafc;">
+            <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#94a3b8;">#</th>
+            <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;color:#94a3b8;">Candidat</th>
+            <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:#94a3b8;">Voix</th>
+            <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;color:#94a3b8;">%</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${pos.needsRunoff ? '<p style="margin-top:8px;font-size:12px;color:#b45309;font-weight:600;">⚠ Second tour requis</p>' : ''}
+      </div>
+    `;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+    <title>PV — ${election.title}</title>
+    <style>
+      body{font-family:Georgia,serif;color:#0f172a;padding:40px;max-width:780px;margin:0 auto;}
+      @media print{body{padding:20px;}}
+      h1{font-size:22px;margin:0 0 4px;}
+      hr{border:none;border-top:2px solid #0f172a;margin:20px 0;}
+      .meta{font-size:12px;color:#64748b;margin-bottom:24px;}
+      .stats{display:flex;gap:24px;margin-bottom:32px;}
+      .stat{text-align:center;flex:1;border:1px solid #e2e8f0;border-radius:8px;padding:12px;}
+      .stat-val{font-size:28px;font-weight:700;color:#0f172a;}
+      .stat-lbl{font-size:11px;color:#64748b;margin-top:4px;}
+      .footer{margin-top:40px;font-size:11px;color:#94a3b8;text-align:center;}
+    </style>
+  </head><body>
+    <p style="font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.1em;margin:0 0 8px;">Procès-verbal de dépouillement</p>
+    <h1>${election.title}</h1>
+    <hr>
+    <div class="meta">Dépouillement effectué le ${date} · Résultats ${election.status === 'PUBLIE' ? 'officiels' : 'provisoires (non publiés)'}</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-val">${result.ballotsCount}</div><div class="stat-lbl">Bulletins exprimés</div></div>
+      <div class="stat"><div class="stat-val">${result.eligibleCount}</div><div class="stat-lbl">Électeurs éligibles</div></div>
+      <div class="stat"><div class="stat-val">${result.turnout.toFixed(1)}%</div><div class="stat-lbl">Taux de participation</div></div>
+    </div>
+    ${positionsHtml}
+    <div class="footer">Document généré par eVote — ${new Date().toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</div>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 300);
+}
+
 export default function ElectionResultsPage() {
   const { electionId } = useParams<{ electionId: string }>();
   const [result, setResult] = useState<TallyResult | null>(null);
@@ -104,6 +169,18 @@ export default function ElectionResultsPage() {
             </span>
           )}
         </div>
+        <button
+          type="button"
+          onClick={() => printPV(election, result)}
+          className="flex items-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 shadow-sm hover:bg-ink-50 transition-colors"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <polyline points="6 9 6 2 18 2 18 9" />
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <rect x="6" y="14" width="12" height="8" />
+          </svg>
+          Télécharger le PV
+        </button>
       </div>
 
       {/* Stats globales */}
