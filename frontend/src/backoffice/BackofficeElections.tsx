@@ -9,6 +9,8 @@ interface Election {
   status: string;
   startAt: string;
   endAt: string;
+  candidacyStartAt?: string | null;
+  candidacyEndAt?: string | null;
   majorityRule: string;
   _count: { positions: number; ballots: number; voteRecords: number };
 }
@@ -44,10 +46,10 @@ export default function BackofficeElections() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: '', description: '', majorityRule: 'RELATIVE', startAt: '', endAt: '' });
+  const [form, setForm] = useState({ title: '', description: '', majorityRule: 'RELATIVE', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '' });
   const [positions, setPositions] = useState<PosForm[]>([{ title: '', seats: 1 }]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', description: '', startAt: '', endAt: '' });
+  const [editForm, setEditForm] = useState({ title: '', description: '', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '' });
   const [editError, setEditError] = useState<string | null>(null);
   const [tallyingId, setTallyingId] = useState<string | null>(null);
 
@@ -70,13 +72,17 @@ export default function BackofficeElections() {
     setError(null);
     try {
       await api.post('/elections', {
-        ...form,
+        title: form.title,
+        description: form.description,
+        majorityRule: form.majorityRule,
         startAt: new Date(form.startAt).toISOString(),
         endAt: new Date(form.endAt).toISOString(),
+        ...(form.candidacyStartAt ? { candidacyStartAt: new Date(form.candidacyStartAt).toISOString() } : {}),
+        ...(form.candidacyEndAt ? { candidacyEndAt: new Date(form.candidacyEndAt).toISOString() } : {}),
         positions: positions.filter((p) => p.title.trim()),
       });
       setShowForm(false);
-      setForm({ title: '', description: '', majorityRule: 'RELATIVE', startAt: '', endAt: '' });
+      setForm({ title: '', description: '', majorityRule: 'RELATIVE', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '' });
       setPositions([{ title: '', seats: 1 }]);
       showToast('Scrutin créé avec succès.');
       load();
@@ -99,6 +105,8 @@ export default function BackofficeElections() {
       description: el.description ?? '',
       startAt: toLocalDatetime(el.startAt),
       endAt: toLocalDatetime(el.endAt),
+      candidacyStartAt: el.candidacyStartAt ? toLocalDatetime(el.candidacyStartAt) : '',
+      candidacyEndAt: el.candidacyEndAt ? toLocalDatetime(el.candidacyEndAt) : '',
     });
   }
 
@@ -111,6 +119,8 @@ export default function BackofficeElections() {
         description: editForm.description,
         startAt: new Date(editForm.startAt).toISOString(),
         endAt: new Date(editForm.endAt).toISOString(),
+        candidacyStartAt: editForm.candidacyStartAt ? new Date(editForm.candidacyStartAt).toISOString() : null,
+        candidacyEndAt: editForm.candidacyEndAt ? new Date(editForm.candidacyEndAt).toISOString() : null,
       });
       setEditingId(null);
       showToast('Scrutin modifié.');
@@ -209,14 +219,28 @@ export default function BackofficeElections() {
             </div>
             <div />
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Ouverture</label>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Ouverture du scrutin</label>
               <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
                 value={form.startAt} onChange={(e) => setForm({ ...form, startAt: e.target.value })} required />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Clôture</label>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Clôture du scrutin</label>
               <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
                 value={form.endAt} onChange={(e) => setForm({ ...form, endAt: e.target.value })} required />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                Début dépôt candidatures <span className="font-normal text-slate-400">(facultatif)</span>
+              </label>
+              <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                value={form.candidacyStartAt} onChange={(e) => setForm({ ...form, candidacyStartAt: e.target.value })} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                Fin dépôt candidatures <span className="font-normal text-slate-400">(facultatif)</span>
+              </label>
+              <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                value={form.candidacyEndAt} onChange={(e) => setForm({ ...form, candidacyEndAt: e.target.value })} />
             </div>
           </div>
 
@@ -277,6 +301,13 @@ export default function BackofficeElections() {
                     {e._count.positions} poste(s) · {e._count.voteRecords} votant(s) · {' '}
                     {new Date(e.startAt).toLocaleDateString('fr-FR')} → {new Date(e.endAt).toLocaleDateString('fr-FR')}
                   </p>
+                  {(e.candidacyStartAt || e.candidacyEndAt) && (
+                    <p className="mt-0.5 text-xs text-blue-500">
+                      Candidatures :{' '}
+                      {e.candidacyStartAt ? new Date(e.candidacyStartAt).toLocaleDateString('fr-FR') : '—'} → {' '}
+                      {e.candidacyEndAt ? new Date(e.candidacyEndAt).toLocaleDateString('fr-FR') : '—'}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -348,14 +379,28 @@ export default function BackofficeElections() {
                       value={editForm.description} onChange={(e) => setEditForm({ ...editForm, description: e.target.value })} />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">Ouverture</label>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">Ouverture du scrutin</label>
                     <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
                       value={editForm.startAt} onChange={(e) => setEditForm({ ...editForm, startAt: e.target.value })} required />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">Clôture</label>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">Clôture du scrutin</label>
                     <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
                       value={editForm.endAt} onChange={(e) => setEditForm({ ...editForm, endAt: e.target.value })} required />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                      Début dépôt candidatures <span className="font-normal text-slate-400">(facultatif)</span>
+                    </label>
+                    <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      value={editForm.candidacyStartAt} onChange={(e) => setEditForm({ ...editForm, candidacyStartAt: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                      Fin dépôt candidatures <span className="font-normal text-slate-400">(facultatif)</span>
+                    </label>
+                    <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      value={editForm.candidacyEndAt} onChange={(e) => setEditForm({ ...editForm, candidacyEndAt: e.target.value })} />
                   </div>
                 </div>
                 <div className="flex gap-2">

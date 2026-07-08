@@ -96,6 +96,8 @@ export class ElectionsService {
         organizationId,
         startAt: new Date(dto.startAt),
         endAt: new Date(dto.endAt),
+        candidacyStartAt: dto.candidacyStartAt ? new Date(dto.candidacyStartAt) : undefined,
+        candidacyEndAt: dto.candidacyEndAt ? new Date(dto.candidacyEndAt) : undefined,
         positions: positions
           ? {
               create: positions.map((p, i) => ({
@@ -130,11 +132,13 @@ export class ElectionsService {
   ) {
     await this.findOne(organizationId, id);
 
-    const { positions, startAt, endAt, ...rest } = dto;
+    const { positions, startAt, endAt, candidacyStartAt, candidacyEndAt, ...rest } = dto;
     const updateData: Prisma.ElectionUpdateInput = {
       ...rest,
       ...(startAt ? { startAt: new Date(startAt) } : {}),
       ...(endAt ? { endAt: new Date(endAt) } : {}),
+      ...(candidacyStartAt !== undefined ? { candidacyStartAt: candidacyStartAt ? new Date(candidacyStartAt) : null } : {}),
+      ...(candidacyEndAt !== undefined ? { candidacyEndAt: candidacyEndAt ? new Date(candidacyEndAt) : null } : {}),
     };
 
     const election = await this.prisma.election.update({

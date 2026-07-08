@@ -18,6 +18,8 @@ interface Election {
   id: string;
   title: string;
   status: string;
+  candidacyStartAt?: string | null;
+  candidacyEndAt?: string | null;
   positions: Position[];
 }
 interface MyCandidacy {
@@ -248,6 +250,35 @@ export default function CandidaturesPage() {
                 <p className="mt-3 text-sm font-medium text-ink-500">Aucun scrutin n'accepte de candidatures.</p>
               </div>
             ) : (
+              <>
+                {elections.map((el) => {
+                  const now = new Date();
+                  const start = el.candidacyStartAt ? new Date(el.candidacyStartAt) : null;
+                  const end = el.candidacyEndAt ? new Date(el.candidacyEndAt) : null;
+                  if (!start && !end) return null;
+                  const notYet = start && now < start;
+                  const closed = end && now > end;
+                  return (
+                    <div key={el.id} className={`mb-4 flex items-start gap-3 rounded-xl px-4 py-3 text-sm ${closed ? 'bg-red-50 text-red-700' : notYet ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
+                      <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>
+                        <strong>{el.title}</strong> —{' '}
+                        {closed
+                          ? `Dépôt clôturé le ${end!.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}.`
+                          : notYet
+                          ? `Dépôt ouvrira le ${start!.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}.`
+                          : end
+                          ? `Dépôt jusqu'au ${end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}.`
+                          : `Dépôt ouvert depuis le ${start!.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}.`}
+                      </span>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+            {elections.length > 0 && (
               <form onSubmit={submit} className="space-y-5">
                 {/* Poste */}
                 <div>

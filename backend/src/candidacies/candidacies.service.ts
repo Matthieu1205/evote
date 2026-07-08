@@ -124,6 +124,20 @@ export class CandidaciesService {
       );
     }
 
+    // Vérifier la période de dépôt des candidatures si configurée
+    const now = new Date();
+    const { candidacyStartAt, candidacyEndAt } = position.election as { candidacyStartAt: Date | null; candidacyEndAt: Date | null };
+    if (candidacyStartAt && now < candidacyStartAt) {
+      throw new ForbiddenException(
+        `Le dépôt des candidatures n'ouvrira que le ${candidacyStartAt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}.`,
+      );
+    }
+    if (candidacyEndAt && now > candidacyEndAt) {
+      throw new ForbiddenException(
+        `Le délai de dépôt des candidatures est clôturé depuis le ${candidacyEndAt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}.`,
+      );
+    }
+
     // Vérifier unicité
     const existing = await this.prisma.candidacy.findUnique({
       where: { positionId_userId: { positionId: dto.positionId, userId } },
