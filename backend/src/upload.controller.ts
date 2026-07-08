@@ -25,8 +25,9 @@ interface MulterFile {
   mimetype: string;
   size: number;
   filename?: string;
+  // multer-storage-cloudinary stores the URL in `path`
   path?: string;
-  // Cloudinary fields
+  // Cloudinary raw response fields (may or may not be present depending on version)
   secure_url?: string;
   public_id?: string;
 }
@@ -103,9 +104,10 @@ export class UploadController {
       throw new BadRequestException('Photo trop grande (max 5 Mo).');
     }
 
-    // Cloudinary retourne secure_url directement
-    if (useCloudinary && file.secure_url) {
-      return { url: file.secure_url };
+    // multer-storage-cloudinary stocke l'URL dans file.path (et parfois secure_url)
+    if (useCloudinary) {
+      const cloudUrl = file.secure_url ?? file.path;
+      if (cloudUrl) return { url: cloudUrl };
     }
 
     // Fallback : URL locale via proxy Vercel
