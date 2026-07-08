@@ -205,7 +205,7 @@ export function BackofficeShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* Sidebar desktop */}
-      <aside className="hidden w-64 shrink-0 lg:block">
+      <aside className="hidden w-72 shrink-0 lg:block">
         <div className="sticky top-0 h-screen">
           {Sidebar}
         </div>
@@ -221,7 +221,7 @@ export function BackofficeShell({ children }: { children: ReactNode }) {
 
       {/* Drawer mobile */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full w-64 transition-transform duration-300 lg:hidden ${
+        className={`fixed left-0 top-0 z-50 h-full w-72 transition-transform duration-300 lg:hidden ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
