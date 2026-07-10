@@ -1,13 +1,12 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class RequestOtpDto {
   @IsString()
   @IsNotEmpty()
   organizationSlug: string;
 
-  @IsString()
-  @IsNotEmpty()
-  ordreNumber: string;
+  @IsEmail()
+  email: string;
 
   @IsString()
   @IsNotEmpty()

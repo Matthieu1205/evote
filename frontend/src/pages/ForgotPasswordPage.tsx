@@ -7,7 +7,7 @@ const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'h
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [organizationSlug, setOrganizationSlug] = useState('');
-  const [ordreNumber, setOrdreNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,7 +25,7 @@ export default function ForgotPasswordPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationSlug, ordreNumber }),
+        body: JSON.stringify({ organizationSlug, email }),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationSlug, ordreNumber, otp, newPassword }),
+        body: JSON.stringify({ organizationSlug, email, otp, newPassword }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error((d as any).message ?? 'Code invalide ou expiré.');
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
         <div className="relative z-10">
           <h1 className="text-3xl font-bold leading-tight">Récupération de compte</h1>
           <p className="mt-4 max-w-md text-white/80">
-            Un code de vérification sera envoyé à l'adresse email associée à votre numéro de membre.
+            Un code de vérification sera envoyé à l'adresse email de votre compte.
           </p>
         </div>
         <p className="relative z-10 text-sm text-white/50">
@@ -127,8 +127,8 @@ export default function ForgotPasswordPage() {
               </h2>
               <p className="mt-1 text-sm text-ink-500">
                 {step === 1
-                  ? "Saisissez votre organisation et votre numéro d'inscription pour recevoir un code de réinitialisation."
-                  : `Code envoyé à l'adresse email de ${ordreNumber}. Saisissez-le ci-dessous.`}
+                  ? "Saisissez votre organisation et votre adresse email pour recevoir un code de réinitialisation."
+                  : `Code envoyé à l'adresse ${email}. Saisissez-le ci-dessous.`}
               </p>
 
               {error && (
@@ -151,13 +151,14 @@ export default function ForgotPasswordPage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="fp-ordre" className="label">Numéro d'inscription</label>
+                    <label htmlFor="fp-email" className="label">Adresse email</label>
                     <input
-                      id="fp-ordre"
+                      id="fp-email"
+                      type="email"
                       className="input"
-                      value={ordreNumber}
-                      onChange={(e) => setOrdreNumber(e.target.value)}
-                      placeholder="ex : MEMBRE-001"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="ex : prenom.nom@exemple.fr"
                       required
                     />
                   </div>

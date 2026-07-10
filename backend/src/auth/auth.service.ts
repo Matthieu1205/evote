@@ -52,9 +52,9 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: {
-        organizationId_ordreNumber: {
+        organizationId_email: {
           organizationId,
-          ordreNumber: dto.ordreNumber,
+          email: dto.email,
         },
       },
     });
@@ -111,9 +111,9 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: {
-        organizationId_ordreNumber: {
+        organizationId_email: {
           organizationId,
-          ordreNumber: dto.ordreNumber,
+          email: dto.email,
         },
       },
       include: { organization: true },
@@ -269,9 +269,9 @@ export class AuthService {
     const user = organizationId
       ? await this.prisma.user.findUnique({
           where: {
-            organizationId_ordreNumber: {
+            organizationId_email: {
               organizationId,
-              ordreNumber: dto.ordreNumber,
+              email: dto.email,
             },
           },
         })
@@ -296,9 +296,9 @@ export class AuthService {
     const user = organizationId
       ? await this.prisma.user.findUnique({
           where: {
-            organizationId_ordreNumber: {
+            organizationId_email: {
               organizationId,
-              ordreNumber: dto.ordreNumber,
+              email: dto.email,
             },
           },
         })

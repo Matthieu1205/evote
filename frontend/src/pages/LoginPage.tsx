@@ -1,25 +1,25 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { Logo } from '../components/Logo';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Logo } from "../components/Logo";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1);
-  const [organizationSlug, setOrganizationSlug] = useState('');
-  const [ordreNumber, setOrdreNumber] = useState('');
-  const [password, setPassword] = useState('');
+  const [organizationSlug, setOrganizationSlug] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState("");
   const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const BASE = import.meta.env.PROD
-    ? '/api'
-    : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+    ? "/api"
+    : import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
   async function requestOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -27,40 +27,45 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await fetch(`${BASE}/auth/request-otp`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationSlug, ordreNumber, password }),
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationSlug, email, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? 'Une erreur est survenue. Réessayez.');
+        setError(
+          (data as { error?: string }).error ??
+            "Une erreur est survenue. Réessayez.",
+        );
         return;
       }
       const d = data as { devCode?: string; bypass?: boolean };
       // If backend is in bypass mode, skip OTP step and login directly
-      if ((d as any).message === 'Mode bypass — aucun OTP requis.') {
+      if ((d as any).message === "Mode bypass — aucun OTP requis.") {
         const loginRes = await fetch(`${BASE}/auth/login`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ organizationSlug, ordreNumber, password }),
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ organizationSlug, email, password }),
         });
         const loginData = await loginRes.json().catch(() => ({}));
         if (!loginRes.ok) {
-          setError((loginData as { error?: string }).error ?? 'Erreur de connexion.');
+          setError(
+            (loginData as { error?: string }).error ?? "Erreur de connexion.",
+          );
           return;
         }
         const userData = loginData as any;
-        if (userData.token) localStorage.setItem('evote_token', userData.token);
+        if (userData.token) localStorage.setItem("evote_token", userData.token);
         login(userData);
-        navigate(userData.role === 'SUPER_ADMIN' ? '/platform' : '/dashboard');
+        navigate(userData.role === "SUPER_ADMIN" ? "/platform" : "/dashboard");
         return;
       }
       setDevCode(d.devCode ?? null);
       setStep(2);
     } catch {
-      setError('Une erreur réseau est survenue. Réessayez.');
+      setError("Une erreur réseau est survenue. Réessayez.");
     } finally {
       setLoading(false);
     }
@@ -72,22 +77,26 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await fetch(`${BASE}/auth/login`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationSlug, ordreNumber, password, otp }),
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ organizationSlug, email, password, otp }),
+
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? 'Identifiants ou code OTP invalides.');
+        setError(
+          (data as { error?: string }).error ??
+            "Identifiants ou code OTP invalides.",
+        );
         return;
       }
       const userData = data as any;
-      if (userData.token) localStorage.setItem('evote_token', userData.token);
+      if (userData.token) localStorage.setItem("evote_token", userData.token);
       login(userData);
-      navigate(userData.role === 'SUPER_ADMIN' ? '/platform' : '/dashboard');
+      navigate(userData.role === "SUPER_ADMIN" ? "/platform" : "/dashboard");
     } catch {
-      setError('Une erreur réseau est survenue. Réessayez.');
+      setError("Une erreur réseau est survenue. Réessayez.");
     } finally {
       setLoading(false);
     }
@@ -100,14 +109,17 @@ export default function LoginPage() {
         className="relative hidden flex-col justify-between p-12 text-white lg:flex"
         style={{
           backgroundImage: "url('/fond-conexion.png')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
         }}
       >
         <div
           className="pointer-events-none absolute inset-0"
-          style={{ background: 'linear-gradient(160deg, rgba(10,20,30,0.72) 0%, rgba(6,78,59,0.55) 100%)' }}
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(10,20,30,0.72) 0%, rgba(6,78,59,0.55) 100%)",
+          }}
         />
         <Logo className="relative z-10 [&_img]:brightness-0 [&_img]:invert" />
         <div className="relative z-10">
@@ -133,8 +145,8 @@ export default function LoginPage() {
           <h2 className="text-2xl font-bold text-ink-900">Connexion</h2>
           <p className="mt-1 text-sm text-ink-500">
             {step === 1
-              ? 'Saisissez vos identifiants pour accéder à votre espace.'
-              : 'Saisissez le code à usage unique qui vous a été envoyé.'}
+              ? "Saisissez vos identifiants pour accéder à votre espace."
+              : "Saisissez le code à usage unique qui vous a été envoyé."}
           </p>
 
           {error && (
@@ -161,21 +173,24 @@ export default function LoginPage() {
                 />
               </div>
               <div className="field">
-                <label className="label">Numéro d'inscription</label>
+                <label className="label">Adresse email</label>
                 <input
+                  type="email"
                   className="input"
-                  value={ordreNumber}
-                  onChange={(e) => setOrdreNumber(e.target.value)}
-                  placeholder="ex : MEMBRE-001"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ex : prenom.nom@exemple.fr"
                   required
                 />
               </div>
               <div className="field">
-                <label className="label" htmlFor="login-password">Mot de passe</label>
+                <label className="label" htmlFor="login-password">
+                  Mot de passe
+                </label>
                 <div className="relative">
                   <input
                     id="login-password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     className="input pr-10"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -187,15 +202,33 @@ export default function LoginPage() {
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-600"
                     tabIndex={-1}
-                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    aria-label={
+                      showPassword
+                        ? "Masquer le mot de passe"
+                        : "Afficher le mot de passe"
+                    }
                   >
                     {showPassword ? (
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      >
                         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
                         <line x1="1" y1="1" x2="23" y2="23" />
                       </svg>
                     ) : (
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      >
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                         <circle cx="12" cy="12" r="3" />
                       </svg>
@@ -204,18 +237,27 @@ export default function LoginPage() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <a href="/forgot-password" className="text-xs text-brand-600 hover:underline">
+                <a
+                  href="/forgot-password"
+                  className="text-xs text-brand-600 hover:underline"
+                >
                   Mot de passe oublié ?
                 </a>
               </div>
-              <button type="submit" className="btn-primary w-full" disabled={loading}>
-                {loading ? 'Vérification…' : 'Recevoir le code OTP'}
+              <button
+                type="submit"
+                className="btn-primary w-full"
+                disabled={loading}
+              >
+                {loading ? "Vérification…" : "Se connecter"}
               </button>
             </form>
           ) : (
             <form onSubmit={submitLogin} className="mt-6">
               <div className="field">
-                <label className="label">Code à usage unique (6 chiffres)</label>
+                <label className="label">
+                  Code à usage unique (6 chiffres)
+                </label>
                 <input
                   className="input tracking-[0.4em]"
                   value={otp}
@@ -226,12 +268,20 @@ export default function LoginPage() {
                   required
                 />
               </div>
-              <button type="submit" className="btn-primary w-full" disabled={loading}>
-                {loading ? 'Connexion…' : 'Se connecter'}
+              <button
+                type="submit"
+                className="btn-primary w-full"
+                disabled={loading}
+              >
+                {loading ? "Connexion…" : "Se connecter"}
               </button>
               <button
                 type="button"
-                onClick={() => { setStep(1); setOtp(''); setError(null); }}
+                onClick={() => {
+                  setStep(1);
+                  setOtp("");
+                  setError(null);
+                }}
                 className="btn-ghost mt-3 w-full"
               >
                 Retour
