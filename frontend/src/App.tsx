@@ -28,6 +28,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import RegisterPage from './pages/RegisterPage';
 import BackofficeDashboard from './backoffice/BackofficeDashboard';
 import BackofficeMembers from './backoffice/BackofficeMembers';
 import BackofficeElections from './backoffice/BackofficeElections';
@@ -93,6 +94,7 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
       <Route
         path="/dashboard"

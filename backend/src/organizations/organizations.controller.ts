@@ -11,6 +11,7 @@ import { OrganizationsService } from './organizations.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateOrgAdminDto } from './dto/create-org-admin.dto';
+import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -25,6 +26,12 @@ export class OrganizationsController {
   @Get('lookup')
   lookup(@Query('slug') slug: string) {
     return this.organizationsService.lookup(slug);
+  }
+
+  @Public()
+  @Post('register')
+  register(@Body() dto: RegisterOrganizationDto) {
+    return this.organizationsService.register(dto);
   }
 
   @Roles(Role.SUPER_ADMIN)

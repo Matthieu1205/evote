@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const justRegistered = new URLSearchParams(window.location.search).get('registered') === '1';
+  const registeredOrg = new URLSearchParams(window.location.search).get('org') ?? '';
 
   const [step, setStep] = useState<1 | 2>(1);
   const [organizationSlug, setOrganizationSlug] = useState("");
@@ -149,6 +151,15 @@ export default function LoginPage() {
               : "Saisissez le code à usage unique qui vous a été envoyé."}
           </p>
 
+          {justRegistered && (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+              <p className="font-semibold">Organisation créée avec succès !</p>
+              <p className="mt-0.5">
+                Connectez-vous avec l'organisation{" "}
+                <b className="font-mono">{registeredOrg}</b> et votre email.
+              </p>
+            </div>
+          )}
           {error && (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
@@ -251,6 +262,12 @@ export default function LoginPage() {
               >
                 {loading ? "Vérification…" : "Se connecter"}
               </button>
+              <p className="mt-4 text-center text-sm text-ink-500">
+                Pas encore d'organisation ?{" "}
+                <Link to="/register" className="font-medium text-brand-600 hover:underline">
+                  Créer un espace gratuitement
+                </Link>
+              </p>
             </form>
           ) : (
             <form onSubmit={submitLogin} className="mt-6">

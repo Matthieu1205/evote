@@ -11,6 +11,7 @@ import { CryptoService } from '../crypto/crypto.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { CreateOrgAdminDto } from './dto/create-org-admin.dto';
+import { RegisterOrganizationDto } from './dto/register-organization.dto';
 
 @Injectable()
 export class OrganizationsService {
@@ -50,6 +51,63 @@ export class OrganizationsService {
     });
     if (!org) throw new NotFoundException('Organisation introuvable.');
     return org;
+  }
+
+  /**
+   * POST /organizations/register — inscription publique d'une nouvelle organisation.
+   * Crée l'org + le premier compte ADMIN avec le mot de passe choisi par l'utilisateur.
+   */
+  async register(dto: RegisterOrganizationDto): Promise<{ message: string; organizationSlug: string }> {
+    const existing = await this.prisma.organization.findUnique({ where: { slug: dto.slug } });
+    if (existing) throw new ConflictException('Ce slug est déjà utilisé. Choisissez-en un autre.');
+
+    const emailTaken = await this.prisma.user.findFirst({ where: { email: dto.adminEmail } });
+    if (emailTaken) throw new ConflictException('Cette adresse email est déjà associée à un compte.');
+
+    const org = await this.prisma.organization.create({
+      data: {
+        slug: dto.slug,
+        name: dto.name,
+        memberLabel: dto.memberLabel || 'Numéro de membre',
+        primaryColor: dto.primaryColor || '#059669',
+      },
+    });
+
+    const passwordHash = await this.password.hashPassword(dto.adminPassword);
+    const ordreNumber = `ADMIN-${org.id.slice(-6).toUpperCase()}`;
+
+    const user = await this.prisma.user.create({
+      data: {
+        organizationId: org.id,
+        ordreNumber,
+        email: dto.adminEmail,
+        firstName: dto.adminFirstName,
+        lastName: dto.adminLastName,
+        passwordHash,
+        role: 'ADMIN',
+        status: 'ACTIF',
+        isEligible: false,
+      },
+    });
+
+    await this.audit.log({
+      actorId: user.id,
+      action: 'ORGANIZATION_CREATED',
+      entity: 'Organization',
+      entityId: org.id,
+      organizationId: org.id,
+    });
+
+    this.email
+      .sendWelcomeEmail(
+        user.email,
+        `${user.firstName} ${user.lastName}`,
+        user.ordreNumber,
+        '',
+      )
+      .catch(() => {});
+
+    return { message: 'Organisation créée avec succès.', organizationSlug: org.slug };
   }
 
   async create(dto: CreateOrganizationDto, actorId?: string) {
