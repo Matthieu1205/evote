@@ -154,6 +154,11 @@ export default function DashboardPage() {
   }, [isPrivileged]);
 
   const initials = user?.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() ?? '?';
+  const avatarUrl = user?.photoUrl
+    ? (user.photoUrl.startsWith('http') || user.photoUrl.startsWith('data:'))
+      ? user.photoUrl
+      : null
+    : null;
 
   const STAT_CARDS = [
     { label: 'Scrutins ouverts', value: stats?.openCount ?? '—', color: 'bg-emerald-50 text-emerald-700',
@@ -172,8 +177,14 @@ export default function DashboardPage() {
     <AppShell>
       {/* Greeting banner */}
       <div className="mb-8 flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-xl font-black text-white shadow-md">
-          {initials}
+        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl shadow-md">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={user?.name} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-brand-500 to-brand-700 text-xl font-black text-white">
+              {initials}
+            </div>
+          )}
         </div>
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">

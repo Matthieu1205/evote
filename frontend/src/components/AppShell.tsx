@@ -46,7 +46,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const initials = user?.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() ?? '?';
   const avatarUrl = user?.photoUrl
-    ? user.photoUrl.startsWith('http') ? user.photoUrl : `${BASE_URL}${user.photoUrl}`
+    ? (user.photoUrl.startsWith('http') || user.photoUrl.startsWith('data:'))
+      ? user.photoUrl
+      : `${BASE_URL}${user.photoUrl}`
     : null;
 
   function isActive(href: string) {

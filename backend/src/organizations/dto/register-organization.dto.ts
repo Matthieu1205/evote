@@ -18,6 +18,10 @@ export class RegisterOrganizationDto {
   primaryColor?: string;
 
   @IsString()
+  @IsOptional()
+  logoUrl?: string;
+
+  @IsString()
   @IsNotEmpty()
   adminFirstName: string;
 

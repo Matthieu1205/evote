@@ -4,8 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { ROLE_LABELS } from '../lib/rbac';
 import { api } from '../lib/api';
 
-const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
-
 const ROLE_COLORS: Record<string, string> = {
   ADMIN:       'bg-red-100 text-red-700',
   COMMISSION:  'bg-purple-100 text-purple-700',
@@ -29,11 +27,9 @@ export default function ProfilPage() {
     region:    user?.region    ?? '',
   });
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
 
   /* ── Mot de passe ── */
   const [currentPassword, setCurrentPassword] = useState('');
@@ -52,29 +48,23 @@ export default function ProfilPage() {
 
   const avatarUrl = photoPreview ?? user?.photoUrl ?? null;
 
-  /* ── Upload photo ── */
-  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  /* ── Sélection photo (base64, pas d'upload séparé) ── */
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPhotoPreview(URL.createObjectURL(file));
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const token = localStorage.getItem('evote_token');
-      const res = await fetch(`${BASE}/upload`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
-      });
-      const data = await res.json();
-      setUploadedUrl(data.url);
-    } catch {
-      setSaveError("Erreur lors de l'upload de la photo.");
-    } finally {
-      setUploading(false);
+    if (!file.type.startsWith('image/')) {
+      setSaveError("Le fichier doit être une image.");
+      return;
     }
+    if (file.size > 1_000_000) {
+      setSaveError("La photo ne doit pas dépasser 1 Mo.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setPhotoPreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   }
 
   /* ── Sauvegarder profil ── */
@@ -85,7 +75,7 @@ export default function ProfilPage() {
     setSaveLoading(true);
     try {
       const payload: Record<string, string> = { ...form };
-      if (uploadedUrl) payload.photoUrl = uploadedUrl;
+      if (photoPreview) payload.photoUrl = photoPreview;
       const updated = await api.put<any>('/auth/profile', payload);
       if (!user) return;
       setUser({
@@ -101,7 +91,6 @@ export default function ProfilPage() {
       setSaveSuccess(true);
       setEditing(false);
       setPhotoPreview(null);
-      setUploadedUrl(null);
     } catch (err) {
       setSaveError((err as Error).message ?? 'Erreur lors de la sauvegarde.');
     } finally {
@@ -125,7 +114,6 @@ export default function ProfilPage() {
   function cancelEdit() {
     setEditing(false);
     setPhotoPreview(null);
-    setUploadedUrl(null);
     setSaveError(null);
   }
 
@@ -179,17 +167,10 @@ export default function ProfilPage() {
                   )}
                   {editing && (
                     <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40">
-                      {uploading ? (
-                        <svg className="h-6 w-6 animate-spin text-white" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" className="h-6 w-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                          <circle cx="12" cy="13" r="4" />
-                        </svg>
-                      )}
+                      <svg viewBox="0 0 24 24" className="h-6 w-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
                     </div>
                   )}
                 </div>
@@ -263,7 +244,7 @@ export default function ProfilPage() {
                   </div>
 
                   <div className="flex gap-3 pt-2">
-                    <button type="submit" disabled={saveLoading || uploading}
+                    <button type="submit" disabled={saveLoading}
                       className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60">
                       {saveLoading ? (
                         <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">

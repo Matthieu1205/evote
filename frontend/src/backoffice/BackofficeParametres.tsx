@@ -3,8 +3,6 @@ import { BackofficeShell } from './BackofficeShell';
 import { api } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
-const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
-
 export default function BackofficeParametres() {
   const { user, setUser } = useAuth();
   const [form, setForm] = useState({
@@ -14,7 +12,6 @@ export default function BackofficeParametres() {
     logoUrl: '',
   });
   const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,28 +31,23 @@ export default function BackofficeParametres() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('type', 'photo');
-      const token = localStorage.getItem('evote_token');
-      const res = await fetch(`${BASE}/upload`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: fd,
-      });
-      const data = await res.json() as { url: string };
-      setForm((f) => ({ ...f, logoUrl: data.url }));
-    } catch {
-      setError("Erreur lors de l'upload du logo.");
-    } finally {
-      setUploading(false);
+    if (!file.type.startsWith('image/')) {
+      setError("Le fichier doit être une image (PNG, JPG, SVG…).");
+      return;
     }
+    if (file.size > 1_000_000) {
+      setError("Le logo ne doit pas dépasser 1 Mo.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const result = ev.target?.result as string;
+      setForm((f) => ({ ...f, logoUrl: result }));
+    };
+    reader.readAsDataURL(file);
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -124,25 +116,13 @@ export default function BackofficeParametres() {
               </div>
               <div className="flex-1">
                 <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-sm text-slate-500 transition hover:border-emerald-400 hover:text-emerald-600">
-                  {uploading ? (
-                    <>
-                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Envoi en cours…
-                    </>
-                  ) : (
-                    <>
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                      Choisir un logo (PNG, SVG, JPG)
-                    </>
-                  )}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploading} />
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  {form.logoUrl ? "Changer le logo" : "Choisir un logo (PNG, SVG, JPG)"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                 </label>
                 {form.logoUrl && (
                   <button type="button" onClick={() => setForm((f) => ({ ...f, logoUrl: '' }))}

@@ -149,6 +149,7 @@ export function BackofficeShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   useOrgBranding(user?.organization.primaryColor);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const closeMobile = () => setMobileOpen(false);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -180,7 +181,7 @@ export function BackofficeShell({ children }: { children: ReactNode }) {
       .toUpperCase() ?? "AD";
 
   const avatarUrl = user?.photoUrl
-    ? user.photoUrl.startsWith("http")
+    ? (user.photoUrl.startsWith("http") || user.photoUrl.startsWith("data:"))
       ? user.photoUrl
       : `${BASE_URL}${user.photoUrl}`
     : null;
@@ -192,22 +193,37 @@ export function BackofficeShell({ children }: { children: ReactNode }) {
         background: "linear-gradient(180deg, #064e3b 0%, #052e24 100%)",
       }}
     >
+      {/* Bouton fermer — visible uniquement dans le drawer mobile */}
+      <div className="flex justify-end px-3 pt-3 lg:hidden">
+        <button
+          type="button"
+          onClick={closeMobile}
+          className="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+          aria-label="Fermer le menu"
+        >
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
       {/* Logo */}
       <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
         {user?.organization.logoUrl ? (
           <img
             src={user.organization.logoUrl}
             alt={user.organization.name}
-            className="h-9 w-auto"
+            className="h-9 w-auto max-w-[80px] shrink-0 object-contain"
           />
         ) : (
           <img
             src="/logo-evote.svg"
             alt="eVote"
-            className="h-9 w-auto brightness-0 invert"
+            className="h-9 w-auto shrink-0 brightness-0 invert"
           />
         )}
-        <div>
+        <div className="min-w-0 flex-1 overflow-hidden">
           <p className="text-xs font-black uppercase tracking-widest text-white/60">
             Backoffice
           </p>
@@ -339,10 +355,10 @@ export function BackofficeShell({ children }: { children: ReactNode }) {
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile topbar */}
-        <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
           <button
             type="button"
-            onClick={() => setMobileOpen(true)}
+            onClick={() => setMobileOpen((v) => !v)}
             className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
           >
             <svg

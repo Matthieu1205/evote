@@ -59,7 +59,7 @@ export default function LandingPage() {
       </div>
 
       {/* STATS */}
-      <section className="relative overflow-hidden py-16" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)' }}>
+      <section id="fonctionnalites" className="relative overflow-hidden py-16" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)' }}>
         <div
           className="pointer-events-none absolute inset-0 opacity-10"
           style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
@@ -93,7 +93,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink-100 bg-ink-100 shadow-sm lg:grid-cols-4">
             {[
-              { value: '5 min', label: 'Temps moyen pour voter', desc: 'De la connexion à la confirmation du bulletin chiffré.' },
+              { value: '3 min', label: 'Temps moyen pour voter', desc: 'De la connexion à la confirmation du bulletin chiffré.' },
               { value: '100%', label: 'Bulletins chiffrés', desc: 'AES-256-GCM, illisibles même par les administrateurs.' },
               { value: '2×', label: 'Double authentification', desc: 'OTP à la connexion et à la confirmation du vote.' },
               { value: '0', label: 'Incident de sécurité', desc: 'Aucune fuite ni altération depuis le lancement.' },

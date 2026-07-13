@@ -29,7 +29,15 @@ async function bootstrap() {
   const uploadsDir = join(process.cwd(), 'uploads');
   if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
 
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
+
+  // Augmentation de la limite pour les logos base64 (jusqu'à 5 Mo)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const bodyParser = require('body-parser') as typeof import('body-parser');
+  app.use(bodyParser.json({ limit: '5mb' }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: '5mb' }));
 
   // Fichiers uploadés servis en statique
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });

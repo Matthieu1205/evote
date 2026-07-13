@@ -70,6 +70,7 @@ export class OrganizationsService {
         name: dto.name,
         memberLabel: dto.memberLabel || 'Numéro de membre',
         primaryColor: dto.primaryColor || '#059669',
+        logoUrl: dto.logoUrl || null,
       },
     });
 
