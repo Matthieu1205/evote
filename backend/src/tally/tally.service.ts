@@ -116,8 +116,8 @@ export class TallyService {
             (positionVotes.get(positionId) ?? 0) + 1,
           );
         }
-        for (const userId of choices) {
-          cnt.set(userId, (cnt.get(userId) ?? 0) + 1);
+        for (const candidacyId of choices) {
+          cnt.set(candidacyId, (cnt.get(candidacyId) ?? 0) + 1);
         }
       }
     }
@@ -128,7 +128,7 @@ export class TallyService {
 
       const candidates: CandidateResult[] = pos.candidacies
         .map((c) => {
-          const votes = cnt.get(c.userId) ?? 0;
+          const votes = cnt.get(c.id) ?? 0;
           return {
             userId: c.userId,
             name: `${c.user.firstName} ${c.user.lastName}`,
