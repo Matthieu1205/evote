@@ -261,10 +261,17 @@ export class UsersService {
       return cols;
     };
 
-    const headers = parseRow(lines[0]).map((h) => h.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
+    // Normalisation tolérante : accents, casse, espaces/underscores/ponctuation
+    // et pluriels retirés (ex: "ID_Membre" -> "idmembre", "Prénoms" -> "prenom").
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]/g, '')
+        .replace(/s$/, '');
+
+    const headers = parseRow(lines[0]).map(normalize);
     const col = (row: string[], ...keys: string[]) => {
       for (const k of keys) {
-        const i = headers.indexOf(k);
+        const i = headers.indexOf(normalize(k));
         if (i !== -1) return row[i]?.trim() ?? '';
       }
       return '';
@@ -277,7 +284,7 @@ export class UsersService {
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       const row = parseRow(lines[i]);
-      const ordreNumber = col(row, 'ordrenumber', 'numero', 'numeromembre', 'numero de membre', 'membre');
+      const ordreNumber = col(row, 'ordrenumber', 'numero', 'numeromembre', 'numero de membre', 'membre', 'id_membre', 'id', 'matricule');
       const firstName = col(row, 'prenom', 'firstname', 'first_name');
       const lastName = col(row, 'nom', 'lastname', 'last_name');
       const email = col(row, 'email', 'mail', 'courriel');
