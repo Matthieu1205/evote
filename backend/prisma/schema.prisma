@@ -244,3 +244,26 @@ enum OtpPurpose {
   VOTE
   RESET
 }
+
+// Tables non gérées par Prisma (déclarées ici uniquement pour que
+// `prisma db push` ne les considère jamais comme obsolètes et ne
+// propose pas de les supprimer). Ne pas modifier via Prisma Client.
+
+/// Créée automatiquement par connect-pg-simple (stockage des sessions Express).
+model user_sessions {
+  sid    String   @id(map: "session_pkey") @db.VarChar
+  sess   Json     @db.Json
+  expire DateTime @db.Timestamp(6)
+
+  @@index([expire], map: "IDX_session_expire")
+  @@ignore
+}
+
+/// Table de démonstration créée par défaut par Neon.
+model playing_with_neon {
+  id    Int    @id @default(autoincrement())
+  name  String
+  value Float? @db.Real
+
+  @@ignore
+}
