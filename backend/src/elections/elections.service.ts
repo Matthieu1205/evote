@@ -88,7 +88,13 @@ export class ElectionsService {
     candidacyEndAt?: Date | null,
     endAt?: Date,
     resultsPublishAt?: Date | null,
+    candidacyStartAt?: Date | null,
   ) {
+    if (candidacyStartAt && !candidacyEndAt) {
+      throw new BadRequestException(
+        "Indiquez aussi la date de fin du dépôt des candidatures : sans elle, le scrutin peut s'ouvrir automatiquement à tout moment et couper le dépôt des candidatures sans préavis.",
+      );
+    }
     if (candidacyEndAt && startAt <= candidacyEndAt) {
       throw new BadRequestException(
         "La date d'ouverture du scrutin (vote) doit être postérieure à la date de clôture des candidatures, sinon le scrutin s'ouvre automatiquement et bloque le dépôt des candidatures.",
@@ -113,6 +119,7 @@ export class ElectionsService {
       dto.candidacyEndAt ? new Date(dto.candidacyEndAt) : null,
       new Date(dto.endAt),
       dto.resultsPublishAt ? new Date(dto.resultsPublishAt) : null,
+      dto.candidacyStartAt ? new Date(dto.candidacyStartAt) : null,
     );
 
     const election = await this.prisma.election.create({
@@ -161,6 +168,10 @@ export class ElectionsService {
     const { positions, startAt, endAt, candidacyStartAt, candidacyEndAt, resultsPublishAt, ...rest } = dto;
     const effectiveStartAt = startAt ? new Date(startAt) : current.startAt;
     const effectiveEndAt = endAt ? new Date(endAt) : current.endAt;
+    const effectiveCandidacyStartAt =
+      candidacyStartAt !== undefined
+        ? (candidacyStartAt ? new Date(candidacyStartAt) : null)
+        : current.candidacyStartAt;
     const effectiveCandidacyEndAt =
       candidacyEndAt !== undefined
         ? (candidacyEndAt ? new Date(candidacyEndAt) : null)
@@ -169,7 +180,13 @@ export class ElectionsService {
       resultsPublishAt !== undefined
         ? (resultsPublishAt ? new Date(resultsPublishAt) : null)
         : current.resultsPublishAt;
-    this.assertDatesConsistent(effectiveStartAt, effectiveCandidacyEndAt, effectiveEndAt, effectiveResultsPublishAt);
+    this.assertDatesConsistent(
+      effectiveStartAt,
+      effectiveCandidacyEndAt,
+      effectiveEndAt,
+      effectiveResultsPublishAt,
+      effectiveCandidacyStartAt,
+    );
 
     const updateData: Prisma.ElectionUpdateInput = {
       ...rest,

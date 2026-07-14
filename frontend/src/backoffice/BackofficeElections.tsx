@@ -281,10 +281,17 @@ export default function BackofficeElections() {
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                Fin dépôt candidatures <span className="font-normal text-slate-400">(facultatif)</span>
+                Fin dépôt candidatures{' '}
+                <span className="font-normal text-slate-400">
+                  {form.candidacyStartAt ? '(obligatoire si une date de début est fixée)' : '(facultatif)'}
+                </span>
               </label>
               <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
-                value={form.candidacyEndAt} onChange={(e) => setForm({ ...form, candidacyEndAt: e.target.value })} />
+                value={form.candidacyEndAt} onChange={(e) => setForm({ ...form, candidacyEndAt: e.target.value })}
+                required={!!form.candidacyStartAt} />
+              <p className="mt-1 text-[11px] text-slate-400">
+                Sans date de fin, le scrutin peut s'ouvrir automatiquement et couper le dépôt des candidatures sans préavis.
+              </p>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-slate-600">
@@ -534,10 +541,17 @@ export default function BackofficeElections() {
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold text-slate-600">
-                      Fin dépôt candidatures <span className="font-normal text-slate-400">(facultatif)</span>
+                      Fin dépôt candidatures{' '}
+                      <span className="font-normal text-slate-400">
+                        {editForm.candidacyStartAt ? '(obligatoire si une date de début est fixée)' : '(facultatif)'}
+                      </span>
                     </label>
                     <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
-                      value={editForm.candidacyEndAt} onChange={(e) => setEditForm({ ...editForm, candidacyEndAt: e.target.value })} />
+                      value={editForm.candidacyEndAt} onChange={(e) => setEditForm({ ...editForm, candidacyEndAt: e.target.value })}
+                      required={!!editForm.candidacyStartAt} />
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      Sans date de fin, le scrutin peut s'ouvrir automatiquement et couper le dépôt des candidatures sans préavis.
+                    </p>
                   </div>
                   <div>
                     <label className="mb-1.5 block text-xs font-semibold text-slate-600">
