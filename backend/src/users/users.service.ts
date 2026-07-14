@@ -239,8 +239,14 @@ export class UsersService {
     csvText: string,
     actorId?: string,
   ): Promise<{ created: number; skipped: number; errors: { row: number; reason: string }[] }> {
-    const lines = csvText.replace(/\r/g, '').trim().split('\n');
+    const lines = csvText.replace(/^\uFEFF/, '').replace(/\r/g, '').trim().split('\n');
     if (lines.length < 2) return { created: 0, skipped: 0, errors: [] };
+
+    // Excel en locale française exporte les CSV avec ";" (la virgule est le
+    // séparateur décimal). On détecte le séparateur depuis la ligne d'en-tête.
+    const commaCount = (lines[0].match(/,/g) ?? []).length;
+    const semicolonCount = (lines[0].match(/;/g) ?? []).length;
+    const delimiter = semicolonCount > commaCount ? ';' : ',';
 
     const parseRow = (line: string): string[] => {
       const cols: string[] = [];
@@ -248,7 +254,7 @@ export class UsersService {
       let inQ = false;
       for (const ch of line) {
         if (ch === '"') { inQ = !inQ; continue; }
-        if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+        if (ch === delimiter && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
         cur += ch;
       }
       cols.push(cur.trim());
