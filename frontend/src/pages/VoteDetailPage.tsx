@@ -15,6 +15,10 @@ interface Candidacy {
   program?: string | null;
   photoUrl?: string | null;
   profession?: string | null;
+  age?: number | null;
+  biography?: string | null;
+  videoUrl?: string | null;
+  documentUrl?: string | null;
   user: Candidate;
 }
 interface Position {
@@ -100,6 +104,121 @@ function StepBar({ phase }: { phase: Phase }) {
   );
 }
 
+function CandidateProfileModal({
+  candidacy,
+  onClose,
+}: {
+  candidacy: Candidacy;
+  onClose: () => void;
+}) {
+  const c = candidacy;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start gap-4 border-b border-ink-100 p-5">
+          {c.photoUrl ? (
+            <img
+              src={c.photoUrl}
+              alt=""
+              className="h-16 w-16 shrink-0 rounded-2xl border border-ink-100 object-cover"
+            />
+          ) : (
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-brand-100 text-lg font-bold text-brand-600">
+              {c.user.firstName[0] ?? ""}
+              {c.user.lastName[0] ?? ""}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="font-bold text-ink-900">
+              {c.user.firstName} {c.user.lastName}
+            </h3>
+            <p className="mt-0.5 text-xs text-ink-400">
+              {[c.profession, c.age ? `${c.age} ans` : null, c.user.ordreNumber]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-lg p-1.5 text-ink-400 transition hover:bg-ink-50 hover:text-ink-700"
+            aria-label="Fermer"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="space-y-4 p-5">
+          {c.biography && (
+            <div>
+              <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-400">
+                À propos
+              </h4>
+              <p className="whitespace-pre-line text-sm text-ink-700">{c.biography}</p>
+            </div>
+          )}
+
+          {c.program && (
+            <div>
+              <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-400">
+                Programme
+              </h4>
+              <p className="whitespace-pre-line text-sm text-ink-700">{c.program}</p>
+            </div>
+          )}
+
+          {!c.biography && !c.program && (
+            <p className="text-sm italic text-ink-400">
+              Ce candidat n'a pas fourni de présentation détaillée.
+            </p>
+          )}
+
+          {(c.videoUrl || c.documentUrl) && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {c.videoUrl && (
+                <a
+                  href={c.videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-ink-50"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <polygon points="23 7 16 12 23 17 23 7" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" />
+                  </svg>
+                  Voir la vidéo
+                </a>
+              )}
+              {c.documentUrl && (
+                <a
+                  href={c.documentUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-ink-200 px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-ink-50"
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                  Voir le document
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VoteDetailPage() {
   const { electionId } = useParams<{ electionId: string }>();
   const [election, setElection] = useState<Election | null>(null);
@@ -111,6 +230,7 @@ export default function VoteDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [profileFor, setProfileFor] = useState<Candidacy | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -383,7 +503,7 @@ export default function VoteDetailPage() {
                             {c.user.lastName[0] ?? ""}
                           </div>
                         )}
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="font-semibold text-ink-900">
                             {c.user.firstName} {c.user.lastName}
                           </p>
@@ -393,6 +513,13 @@ export default function VoteDetailPage() {
                               : c.user.ordreNumber}
                           </p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => setProfileFor(c)}
+                          className="shrink-0 rounded-lg border border-ink-200 px-2.5 py-1.5 text-xs font-semibold text-ink-600 transition hover:bg-ink-50"
+                        >
+                          Voir le profil
+                        </button>
                       </div>
                     ))
                   )}
@@ -450,11 +577,18 @@ export default function VoteDetailPage() {
                     {cands.map((c) => {
                       const isSel = selected.includes(c.id);
                       return (
-                        <button
+                        <div
                           key={c.id}
-                          type="button"
-                          disabled={isLocked}
-                          onClick={() => toggle(p, c.id)}
+                          role="button"
+                          tabIndex={isLocked ? -1 : 0}
+                          aria-disabled={isLocked}
+                          onClick={() => !isLocked && toggle(p, c.id)}
+                          onKeyDown={(e) => {
+                            if (!isLocked && (e.key === "Enter" || e.key === " ")) {
+                              e.preventDefault();
+                              toggle(p, c.id);
+                            }
+                          }}
                           className={`flex w-full items-center gap-4 px-5 py-4 text-left transition ${
                             isSel ? "bg-brand-50" : "hover:bg-ink-50/60"
                           } ${isLocked ? "cursor-default" : "cursor-pointer"}`}
@@ -485,6 +619,16 @@ export default function VoteDetailPage() {
                                 : c.user.ordreNumber}
                             </p>
                           </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setProfileFor(c);
+                            }}
+                            className="shrink-0 rounded-lg border border-ink-200 px-2.5 py-1.5 text-xs font-semibold text-ink-600 transition hover:bg-ink-100"
+                          >
+                            Voir le profil
+                          </button>
                           {/* Checkbox / radio */}
                           <div
                             className={`flex h-5 w-5 shrink-0 items-center justify-center ${p.seats > 1 ? "rounded-md" : "rounded-full"} border-2 transition ${
@@ -506,7 +650,7 @@ export default function VoteDetailPage() {
                               </svg>
                             )}
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -722,6 +866,13 @@ export default function VoteDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {profileFor && (
+        <CandidateProfileModal
+          candidacy={profileFor}
+          onClose={() => setProfileFor(null)}
+        />
       )}
     </AppShell>
   );
