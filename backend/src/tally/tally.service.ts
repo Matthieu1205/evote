@@ -181,7 +181,7 @@ export class TallyService {
     organizationId: string,
     electionId: string,
     publish: boolean,
-    actorId: string,
+    actorId?: string,
   ): Promise<TallyResult> {
     const election = await this.prisma.election.findFirst({
       where: { id: electionId, organizationId },

@@ -61,6 +61,10 @@ export class CreateElectionDto {
   candidacyEndAt?: string;
 
   @IsOptional()
+  @IsDateString()
+  resultsPublishAt?: string;
+
+  @IsOptional()
   @IsString()
   eligibleSection?: string;
 

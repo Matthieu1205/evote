@@ -83,10 +83,20 @@ export class ElectionsService {
     return election;
   }
 
-  private assertDatesConsistent(startAt: Date, candidacyEndAt?: Date | null) {
+  private assertDatesConsistent(
+    startAt: Date,
+    candidacyEndAt?: Date | null,
+    endAt?: Date,
+    resultsPublishAt?: Date | null,
+  ) {
     if (candidacyEndAt && startAt <= candidacyEndAt) {
       throw new BadRequestException(
         "La date d'ouverture du scrutin (vote) doit être postérieure à la date de clôture des candidatures, sinon le scrutin s'ouvre automatiquement et bloque le dépôt des candidatures.",
+      );
+    }
+    if (resultsPublishAt && endAt && resultsPublishAt < endAt) {
+      throw new BadRequestException(
+        'La date de proclamation des résultats doit être postérieure à la date de fin du vote.',
       );
     }
   }
@@ -101,6 +111,8 @@ export class ElectionsService {
     this.assertDatesConsistent(
       new Date(dto.startAt),
       dto.candidacyEndAt ? new Date(dto.candidacyEndAt) : null,
+      new Date(dto.endAt),
+      dto.resultsPublishAt ? new Date(dto.resultsPublishAt) : null,
     );
 
     const election = await this.prisma.election.create({
@@ -111,6 +123,7 @@ export class ElectionsService {
         endAt: new Date(dto.endAt),
         candidacyStartAt: dto.candidacyStartAt ? new Date(dto.candidacyStartAt) : undefined,
         candidacyEndAt: dto.candidacyEndAt ? new Date(dto.candidacyEndAt) : undefined,
+        resultsPublishAt: dto.resultsPublishAt ? new Date(dto.resultsPublishAt) : undefined,
         positions: positions
           ? {
               create: positions.map((p, i) => ({
@@ -145,13 +158,18 @@ export class ElectionsService {
   ) {
     const current = await this.findOne(organizationId, id);
 
-    const { positions, startAt, endAt, candidacyStartAt, candidacyEndAt, ...rest } = dto;
+    const { positions, startAt, endAt, candidacyStartAt, candidacyEndAt, resultsPublishAt, ...rest } = dto;
     const effectiveStartAt = startAt ? new Date(startAt) : current.startAt;
+    const effectiveEndAt = endAt ? new Date(endAt) : current.endAt;
     const effectiveCandidacyEndAt =
       candidacyEndAt !== undefined
         ? (candidacyEndAt ? new Date(candidacyEndAt) : null)
         : current.candidacyEndAt;
-    this.assertDatesConsistent(effectiveStartAt, effectiveCandidacyEndAt);
+    const effectiveResultsPublishAt =
+      resultsPublishAt !== undefined
+        ? (resultsPublishAt ? new Date(resultsPublishAt) : null)
+        : current.resultsPublishAt;
+    this.assertDatesConsistent(effectiveStartAt, effectiveCandidacyEndAt, effectiveEndAt, effectiveResultsPublishAt);
 
     const updateData: Prisma.ElectionUpdateInput = {
       ...rest,
@@ -159,6 +177,7 @@ export class ElectionsService {
       ...(endAt ? { endAt: new Date(endAt) } : {}),
       ...(candidacyStartAt !== undefined ? { candidacyStartAt: candidacyStartAt ? new Date(candidacyStartAt) : null } : {}),
       ...(candidacyEndAt !== undefined ? { candidacyEndAt: candidacyEndAt ? new Date(candidacyEndAt) : null } : {}),
+      ...(resultsPublishAt !== undefined ? { resultsPublishAt: resultsPublishAt ? new Date(resultsPublishAt) : null } : {}),
     };
 
     const election = await this.prisma.election.update({

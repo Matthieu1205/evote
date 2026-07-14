@@ -73,6 +73,7 @@ model Election {
   endAt                DateTime
   candidacyStartAt     DateTime?
   candidacyEndAt       DateTime?
+  resultsPublishAt     DateTime?
   eligibleSection String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

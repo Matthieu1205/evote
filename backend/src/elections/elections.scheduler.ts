@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { EmailService } from '../common/email.service';
+import { TallyService } from '../tally/tally.service';
 
 @Injectable()
 export class ElectionsScheduler {
@@ -12,6 +13,7 @@ export class ElectionsScheduler {
     private prisma: PrismaService,
     private audit: AuditService,
     private email: EmailService,
+    private tally: TallyService,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -80,9 +82,28 @@ export class ElectionsScheduler {
       this.logger.log(`Scrutin "${election.title}" automatiquement clôturé.`);
     }
 
-    if (toOpen.length + toClose.length > 0) {
+    // CLOS → PUBLIE (dépouillement + publication) si resultsPublishAt est dépassé
+    const toPublish = await this.prisma.election.findMany({
+      where: { status: 'CLOS', resultsPublishAt: { lte: now } },
+    });
+
+    for (const election of toPublish) {
+      try {
+        await this.tally.runTally(election.organizationId, election.id, true);
+        this.logger.log(
+          `Scrutin "${election.title}" automatiquement dépouillé et publié.`,
+        );
+      } catch (e) {
+        this.logger.error(
+          `Échec du dépouillement automatique du scrutin "${election.title}"`,
+          e instanceof Error ? e.stack : String(e),
+        );
+      }
+    }
+
+    if (toOpen.length + toClose.length + toPublish.length > 0) {
       this.logger.log(
-        `Transitions auto : ${toOpen.length} ouverts, ${toClose.length} clôturés.`,
+        `Transitions auto : ${toOpen.length} ouverts, ${toClose.length} clôturés, ${toPublish.length} publiés.`,
       );
     }
   }

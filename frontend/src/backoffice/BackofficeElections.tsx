@@ -11,6 +11,7 @@ interface Election {
   endAt: string;
   candidacyStartAt?: string | null;
   candidacyEndAt?: string | null;
+  resultsPublishAt?: string | null;
   majorityRule: string;
   _count: { positions: number; ballots: number; voteRecords: number };
 }
@@ -48,10 +49,10 @@ export default function BackofficeElections() {
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: '', description: '', majorityRule: 'RELATIVE', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '' });
+  const [form, setForm] = useState({ title: '', description: '', majorityRule: 'RELATIVE', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '', resultsPublishAt: '' });
   const [positions, setPositions] = useState<PosForm[]>([{ title: '', seats: 1 }]);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', description: '', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '' });
+  const [editForm, setEditForm] = useState({ title: '', description: '', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '', resultsPublishAt: '' });
   const [editError, setEditError] = useState<string | null>(null);
   const [tallyingId, setTallyingId] = useState<string | null>(null);
   const [managingPosId, setManagingPosId] = useState<string | null>(null);
@@ -85,10 +86,11 @@ export default function BackofficeElections() {
         endAt: new Date(form.endAt).toISOString(),
         ...(form.candidacyStartAt ? { candidacyStartAt: new Date(form.candidacyStartAt).toISOString() } : {}),
         ...(form.candidacyEndAt ? { candidacyEndAt: new Date(form.candidacyEndAt).toISOString() } : {}),
+        ...(form.resultsPublishAt ? { resultsPublishAt: new Date(form.resultsPublishAt).toISOString() } : {}),
         positions: positions.filter((p) => p.title.trim()),
       });
       setShowForm(false);
-      setForm({ title: '', description: '', majorityRule: 'RELATIVE', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '' });
+      setForm({ title: '', description: '', majorityRule: 'RELATIVE', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '', resultsPublishAt: '' });
       setPositions([{ title: '', seats: 1 }]);
       showToast('Scrutin créé avec succès.');
       load();
@@ -113,6 +115,7 @@ export default function BackofficeElections() {
       endAt: toLocalDatetime(el.endAt),
       candidacyStartAt: el.candidacyStartAt ? toLocalDatetime(el.candidacyStartAt) : '',
       candidacyEndAt: el.candidacyEndAt ? toLocalDatetime(el.candidacyEndAt) : '',
+      resultsPublishAt: el.resultsPublishAt ? toLocalDatetime(el.resultsPublishAt) : '',
     });
   }
 
@@ -127,6 +130,7 @@ export default function BackofficeElections() {
         endAt: new Date(editForm.endAt).toISOString(),
         candidacyStartAt: editForm.candidacyStartAt ? new Date(editForm.candidacyStartAt).toISOString() : null,
         candidacyEndAt: editForm.candidacyEndAt ? new Date(editForm.candidacyEndAt).toISOString() : null,
+        resultsPublishAt: editForm.resultsPublishAt ? new Date(editForm.resultsPublishAt).toISOString() : null,
       });
       setEditingId(null);
       showToast('Scrutin modifié.');
@@ -282,6 +286,13 @@ export default function BackofficeElections() {
               <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
                 value={form.candidacyEndAt} onChange={(e) => setForm({ ...form, candidacyEndAt: e.target.value })} />
             </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                Proclamation des résultats <span className="font-normal text-slate-400">(facultatif — dépouillement et publication automatiques)</span>
+              </label>
+              <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                value={form.resultsPublishAt} onChange={(e) => setForm({ ...form, resultsPublishAt: e.target.value })} />
+            </div>
           </div>
 
           <div className="mt-4">
@@ -346,6 +357,12 @@ export default function BackofficeElections() {
                       Candidatures :{' '}
                       {e.candidacyStartAt ? new Date(e.candidacyStartAt).toLocaleDateString('fr-FR') : '—'} → {' '}
                       {e.candidacyEndAt ? new Date(e.candidacyEndAt).toLocaleDateString('fr-FR') : '—'}
+                    </p>
+                  )}
+                  {e.resultsPublishAt && (
+                    <p className="mt-0.5 text-xs text-teal-600">
+                      Proclamation des résultats : {new Date(e.resultsPublishAt).toLocaleDateString('fr-FR', { dateStyle: 'long' })} à{' '}
+                      {new Date(e.resultsPublishAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   )}
                 </div>
@@ -521,6 +538,13 @@ export default function BackofficeElections() {
                     </label>
                     <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
                       value={editForm.candidacyEndAt} onChange={(e) => setEditForm({ ...editForm, candidacyEndAt: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-600">
+                      Proclamation des résultats <span className="font-normal text-slate-400">(facultatif — dépouillement et publication automatiques)</span>
+                    </label>
+                    <input type="datetime-local" className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      value={editForm.resultsPublishAt} onChange={(e) => setEditForm({ ...editForm, resultsPublishAt: e.target.value })} />
                   </div>
                 </div>
                 <div className="flex gap-2">
