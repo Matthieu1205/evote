@@ -83,12 +83,25 @@ export class ElectionsService {
     return election;
   }
 
+  private assertDatesConsistent(startAt: Date, candidacyEndAt?: Date | null) {
+    if (candidacyEndAt && startAt <= candidacyEndAt) {
+      throw new BadRequestException(
+        "La date d'ouverture du scrutin (vote) doit être postérieure à la date de clôture des candidatures, sinon le scrutin s'ouvre automatiquement et bloque le dépôt des candidatures.",
+      );
+    }
+  }
+
   async create(
     organizationId: string,
     dto: CreateElectionDto,
     actorId?: string,
   ) {
     const { positions, ...electionData } = dto;
+
+    this.assertDatesConsistent(
+      new Date(dto.startAt),
+      dto.candidacyEndAt ? new Date(dto.candidacyEndAt) : null,
+    );
 
     const election = await this.prisma.election.create({
       data: {
@@ -130,9 +143,16 @@ export class ElectionsService {
     dto: UpdateElectionDto,
     actorId?: string,
   ) {
-    await this.findOne(organizationId, id);
+    const current = await this.findOne(organizationId, id);
 
     const { positions, startAt, endAt, candidacyStartAt, candidacyEndAt, ...rest } = dto;
+    const effectiveStartAt = startAt ? new Date(startAt) : current.startAt;
+    const effectiveCandidacyEndAt =
+      candidacyEndAt !== undefined
+        ? (candidacyEndAt ? new Date(candidacyEndAt) : null)
+        : current.candidacyEndAt;
+    this.assertDatesConsistent(effectiveStartAt, effectiveCandidacyEndAt);
+
     const updateData: Prisma.ElectionUpdateInput = {
       ...rest,
       ...(startAt ? { startAt: new Date(startAt) } : {}),

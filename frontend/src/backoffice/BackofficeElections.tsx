@@ -370,6 +370,13 @@ export default function BackofficeElections() {
                     Clôturer
                   </button>
                 )}
+                {e.status === 'OUVERT' && e._count.voteRecords === 0 && (
+                  <button onClick={() => setStatus(e.id, 'PLANIFIE')}
+                    title="Revenir en phase candidatures (par ex. si le scrutin s'est ouvert trop tôt et bloque le dépôt des candidatures)"
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                    Revenir à Planifié
+                  </button>
+                )}
                 {e.status === 'CLOS' && (
                   <button
                     type="button"
