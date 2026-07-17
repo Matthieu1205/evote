@@ -1,5 +1,5 @@
 ﻿# eVote — Plateforme de vote électronique
-## Ordre des Pharmaciens de Côte d''Ivoire
+## Organiser vos élèctions en toutes securité
 
 ## Structure du projet
 
