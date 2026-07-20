@@ -37,6 +37,7 @@ export default function AdminMembresPage() {
   const [form, setForm] = useState({ ...empty });
   const [showForm, setShowForm] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [editingEmail, setEditingEmail] = useState<{ id: string; value: string } | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [resetMsg, setResetMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null);
@@ -91,9 +92,11 @@ export default function AdminMembresPage() {
     e.preventDefault();
     setCreateError(null);
     try {
-      await api.post('/users', form);
+      const created = await api.post<{ firstName: string; lastName: string; ordreNumber: string }>('/users', form);
       setForm({ ...empty });
       setShowForm(false);
+      setCreateSuccess(`${created.firstName} ${created.lastName} (${created.ordreNumber}) a été ajouté(e) avec succès.`);
+      setTimeout(() => setCreateSuccess(null), 5000);
       load();
     } catch (err) {
       setCreateError((err as Error).message ?? 'Erreur');
@@ -137,6 +140,15 @@ export default function AdminMembresPage() {
           </button>
         </div>
       </div>
+
+      {createSuccess && (
+        <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          {createSuccess}
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={create} className="card mt-6 grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-3">
