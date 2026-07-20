@@ -124,6 +124,11 @@ export class VotesService {
           `Poste ${positionId} invalide pour cette élection.`,
         );
       }
+      if (new Set(choices).size !== choices.length) {
+        throw new ForbiddenException(
+          `Choix en double pour le poste "${position.title}".`,
+        );
+      }
       if (choices.length > position.seats) {
         throw new ForbiddenException(
           `Trop de choix pour le poste "${position.title}" (max ${position.seats}).`,
@@ -142,6 +147,13 @@ export class VotesService {
     const payload = { choices: dto.choices };
     const encrypted = this.crypto.encryptBallot(payload);
 
+    // Horodatage du bulletin volontairement décorrélé de celui de l'émargement :
+    // sans ce jitter, les deux lignes créées dans la même transaction portent
+    // exactement le même instant (NOW() est figé au début de la transaction
+    // Postgres), ce qui permettrait de ré-associer trivialement un bulletin à
+    // son électeur par simple jointure temporelle.
+    const ballotCreatedAt = this.jitteredBallotTimestamp(election.startAt);
+
     // 7. Transaction : bulletin + émargement
     await this.prisma.$transaction([
       this.prisma.ballot.create({
@@ -152,6 +164,7 @@ export class VotesService {
           ciphertext: encrypted.ciphertext,
           iv: encrypted.iv,
           authTag: encrypted.authTag,
+          createdAt: ballotCreatedAt,
         },
       }),
       this.prisma.voteRecord.create({
@@ -170,6 +183,16 @@ export class VotesService {
     });
 
     return { message: 'Vote enregistré avec succès.' };
+  }
+
+  /**
+   * Décale aléatoirement (jusqu'à 20 min dans le passé) l'horodatage du
+   * bulletin, borné à ne jamais précéder l'ouverture du scrutin.
+   */
+  private jitteredBallotTimestamp(electionStartAt: Date): Date {
+    const maxJitterMs = 20 * 60 * 1000;
+    const jittered = new Date(Date.now() - Math.floor(Math.random() * maxJitterMs));
+    return jittered < electionStartAt ? electionStartAt : jittered;
   }
 
   /**

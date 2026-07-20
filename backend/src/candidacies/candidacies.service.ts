@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
 import { EmailService } from '../common/email.service';
-import { CandidacyStatus, Prisma } from '@prisma/client';
+import { CandidacyStatus, Prisma, Role } from '@prisma/client';
 import { CreateCandidacyDto } from './dto/create-candidacy.dto';
 import { ReviewCandidacyDto } from './dto/review-candidacy.dto';
 import { CreateConditionDto, UpdateConditionDto } from './dto/create-condition.dto';
@@ -80,7 +80,7 @@ export class CandidaciesService {
     };
   }
 
-  async findOne(organizationId: string, id: string) {
+  private async findByIdOrThrow(organizationId: string, id: string) {
     const c = await this.prisma.candidacy.findFirst({
       where: { id, organizationId },
       include: {
@@ -102,6 +102,28 @@ export class CandidaciesService {
       },
     });
     if (!c) throw new NotFoundException(`Candidature ${id} introuvable.`);
+    return c;
+  }
+
+  /**
+   * Accès public à une candidature : réservé au propriétaire, aux
+   * organisateurs (ADMIN/COMMISSION), ou à tous une fois validée.
+   */
+  async findOne(
+    organizationId: string,
+    id: string,
+    requesterId: string,
+    requesterRole: Role,
+  ) {
+    const c = await this.findByIdOrThrow(organizationId, id);
+
+    const isReviewer = ['ADMIN', 'COMMISSION'].includes(requesterRole);
+    const isOwner = c.userId === requesterId;
+    if (c.status !== 'VALIDEE' && !isReviewer && !isOwner) {
+      throw new ForbiddenException(
+        'Cette candidature n\'est pas encore visible.',
+      );
+    }
     return c;
   }
 
@@ -170,7 +192,7 @@ export class CandidaciesService {
     dto: ReviewCandidacyDto,
     actorId: string,
   ) {
-    await this.findOne(organizationId, id);
+    await this.findByIdOrThrow(organizationId, id);
 
     const updated = await this.prisma.candidacy.update({
       where: { id },
@@ -211,7 +233,7 @@ export class CandidaciesService {
     dto: ReviewCandidacyDto,
     actorId: string,
   ) {
-    await this.findOne(organizationId, id);
+    await this.findByIdOrThrow(organizationId, id);
 
     const updated = await this.prisma.candidacy.update({
       where: { id },
@@ -284,7 +306,7 @@ export class CandidaciesService {
   }
 
   async withdraw(organizationId: string, id: string, userId: string) {
-    const candidacy = await this.findOne(organizationId, id);
+    const candidacy = await this.findByIdOrThrow(organizationId, id);
     if (candidacy.userId !== userId) {
       throw new ForbiddenException(
         'Vous ne pouvez retirer que votre propre candidature.',

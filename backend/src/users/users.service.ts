@@ -13,6 +13,16 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Prisma, Role, MemberStatus } from '@prisma/client';
 
+/**
+ * Neutralise l'injection de formule CSV : un champ commençant par
+ * =, +, -, @ ou une tabulation est interprété comme une formule par
+ * Excel/Sheets à l'ouverture. On préfixe d'une apostrophe pour forcer
+ * une lecture en texte brut.
+ */
+function sanitizeCsvField(value: string): string {
+  return /^[=+\-@\t]/.test(value) ? `'${value}` : value;
+}
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -227,7 +237,7 @@ export class UsersService {
     organizationId: string,
     id: string,
     actorId?: string,
-  ): Promise<{ message: string; tempPassword: string }> {
+  ): Promise<{ message: string }> {
     const user = await this.prisma.user.findFirst({
       where: { id, organizationId },
     });
@@ -252,7 +262,6 @@ export class UsersService {
 
     return {
       message: `Mot de passe réinitialisé. Un email a été envoyé à ${user.email}.`,
-      tempPassword,
     };
   }
 
@@ -409,7 +418,7 @@ export class UsersService {
         u.phone ?? '',
         u.createdAt.toISOString(),
       ]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .map((v) => `"${sanitizeCsvField(String(v)).replace(/"/g, '""')}"`)
         .join(','),
     );
 

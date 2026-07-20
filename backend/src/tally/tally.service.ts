@@ -116,7 +116,7 @@ export class TallyService {
             (positionVotes.get(positionId) ?? 0) + 1,
           );
         }
-        for (const candidacyId of choices) {
+        for (const candidacyId of new Set(choices)) {
           cnt.set(candidacyId, (cnt.get(candidacyId) ?? 0) + 1);
         }
       }

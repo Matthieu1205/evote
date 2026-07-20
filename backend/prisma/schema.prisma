@@ -127,7 +127,7 @@ model Candidacy {
 }
 
 model Ballot {
-  id             String       @id @default(cuid())
+  id             String       @id @default(uuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   electionId     String

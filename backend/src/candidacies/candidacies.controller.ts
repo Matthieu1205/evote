@@ -69,7 +69,12 @@ export class CandidaciesController {
 
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: SessionUser) {
-    return this.candidaciesService.findOne(user.organizationId, id);
+    return this.candidaciesService.findOne(
+      user.organizationId,
+      id,
+      user.userId,
+      user.role as Role,
+    );
   }
 
   @Roles(Role.ELECTEUR, Role.CANDIDAT, Role.COMMISSION, Role.ADMIN)

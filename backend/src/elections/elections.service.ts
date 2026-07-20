@@ -292,13 +292,44 @@ export class ElectionsService {
     return { message: 'Poste supprimé.' };
   }
 
+  private static readonly ALLOWED_STATUS_TRANSITIONS: Record<
+    ElectionStatus,
+    ElectionStatus[]
+  > = {
+    BROUILLON: ['PLANIFIE'],
+    PLANIFIE: ['OUVERT'],
+    OUVERT: ['CLOS', 'PLANIFIE'],
+    CLOS: [],
+    DEPOUILLE: ['PUBLIE'],
+    PUBLIE: [],
+  };
+
   async changeStatus(
     organizationId: string,
     id: string,
     status: ElectionStatus,
     actorId?: string,
   ) {
-    await this.findOne(organizationId, id);
+    const current = await this.findOne(organizationId, id);
+
+    const allowed = ElectionsService.ALLOWED_STATUS_TRANSITIONS[
+      current.status as ElectionStatus
+    ];
+    if (!allowed.includes(status)) {
+      throw new BadRequestException(
+        `Transition de statut invalide : ${current.status} → ${status}.`,
+      );
+    }
+    if (
+      status === 'PLANIFIE' &&
+      current.status === 'OUVERT' &&
+      current._count.voteRecords > 0
+    ) {
+      throw new BadRequestException(
+        'Impossible de rouvrir les candidatures : des votes ont déjà été enregistrés.',
+      );
+    }
+
     const election = await this.prisma.election.update({
       where: { id },
       data: { status },
@@ -312,18 +343,27 @@ export class ElectionsService {
     });
 
     if (status === 'OUVERT') {
-      const loginUrl = `${process.env.FRONTEND_URL ?? 'https://evote-ashy.vercel.app'}/login`;
-      const voters = await this.prisma.user.findMany({
-        where: { organizationId, isEligible: true, status: 'ACTIF', role: 'ELECTEUR' },
-        select: { email: true, firstName: true, lastName: true },
-      });
-      for (const voter of voters) {
-        this.email
-          .sendElectionOpenEmail(voter.email, `${voter.firstName} ${voter.lastName}`, election.title, loginUrl)
-          .catch(() => {});
-      }
+      await this.notifyVotersElectionOpen(organizationId, election.title);
     }
 
     return election;
+  }
+
+  /**
+   * Notifie par email les électeurs éligibles qu'un scrutin vient de
+   * s'ouvrir. Appelé aussi bien depuis un changement de statut manuel que
+   * depuis la transition automatique planifiée (ElectionsScheduler).
+   */
+  async notifyVotersElectionOpen(organizationId: string, electionTitle: string) {
+    const loginUrl = `${process.env.FRONTEND_URL ?? 'https://evote-ashy.vercel.app'}/login`;
+    const voters = await this.prisma.user.findMany({
+      where: { organizationId, isEligible: true, status: 'ACTIF', role: 'ELECTEUR' },
+      select: { email: true, firstName: true, lastName: true },
+    });
+    for (const voter of voters) {
+      this.email
+        .sendElectionOpenEmail(voter.email, `${voter.firstName} ${voter.lastName}`, electionTitle, loginUrl)
+        .catch(() => {});
+    }
   }
 }

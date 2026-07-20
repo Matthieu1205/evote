@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { extname, join } from 'path';
+import { join } from 'path';
 import { randomUUID } from 'crypto';
 import { mkdirSync, existsSync } from 'fs';
 
@@ -19,6 +19,19 @@ const { diskStorage } = require('multer');
 const ALLOWED = /^(image\/(jpeg|png|webp)|video\/(mp4|webm|quicktime))$/;
 const MAX_VIDEO = 80 * 1024 * 1024;
 const MAX_PHOTO = 5 * 1024 * 1024;
+
+// Extension dérivée du mimetype validé, jamais du nom de fichier fourni par
+// le client : évite qu'un fichier envoyé avec un mimetype autorisé mais un
+// nom de fichier .svg/.html soit stocké et servi avec cette extension
+// (XSS stocké via /uploads/<id>.svg).
+const EXT_BY_MIME: Record<string, string> = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'video/mp4': '.mp4',
+  'video/webm': '.webm',
+  'video/quicktime': '.mov',
+};
 
 interface MulterFile {
   originalname: string;
@@ -71,7 +84,7 @@ if (!existsSync(UPLOAD_DIR)) mkdirSync(UPLOAD_DIR, { recursive: true });
 const localStorage = diskStorage({
   destination: UPLOAD_DIR,
   filename: (_req: unknown, file: MulterFile, cb: FilenameCb) => {
-    const ext = extname(file.originalname).toLowerCase() || '.bin';
+    const ext = EXT_BY_MIME[file.mimetype] ?? '.bin';
     cb(null, `${randomUUID()}${ext}`);
   },
 });

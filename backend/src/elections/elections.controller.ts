@@ -13,6 +13,7 @@ import {
 import { ElectionsService } from './elections.service';
 import { CreateElectionDto } from './dto/create-election.dto';
 import { UpdateElectionDto } from './dto/update-election.dto';
+import { ChangeStatusDto } from './dto/change-status.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { SessionUser } from '../common/decorators/session-user.interface';
@@ -70,13 +71,13 @@ export class ElectionsController {
   @Put(':id/status')
   changeStatus(
     @Param('id') id: string,
-    @Body('status') status: ElectionStatus,
+    @Body() dto: ChangeStatusDto,
     @CurrentUser() user: SessionUser,
   ) {
     return this.electionsService.changeStatus(
       user.organizationId,
       id,
-      status,
+      dto.status,
       user.userId,
     );
   }
