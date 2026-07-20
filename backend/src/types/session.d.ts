@@ -6,5 +6,6 @@ declare module 'express-session' {
     role?: string;
     ordreNumber?: string;
     organizationId?: string;
+    isPlatform?: boolean;
   }
 }

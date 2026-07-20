@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from '../common/password.service';
@@ -106,6 +107,12 @@ export class UsersService {
     dto: CreateUserDto,
     actorId?: string,
   ): Promise<object> {
+    if (dto.role === 'SUPER_ADMIN') {
+      throw new ForbiddenException(
+        "Le rôle Super Administrateur ne peut pas être attribué depuis la gestion des membres.",
+      );
+    }
+
     const emailExists = await this.prisma.user.findFirst({
       where: { organizationId, email: dto.email },
     });
@@ -184,6 +191,12 @@ export class UsersService {
     dto: UpdateUserDto,
     actorId?: string,
   ): Promise<object> {
+    if (dto.role === 'SUPER_ADMIN') {
+      throw new ForbiddenException(
+        "Le rôle Super Administrateur ne peut pas être attribué depuis la gestion des membres.",
+      );
+    }
+
     await this.findOne(organizationId, id); // Vérifie l'existence + l'appartenance
 
     const { password, ...fields } = dto;

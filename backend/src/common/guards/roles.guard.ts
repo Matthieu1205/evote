@@ -28,6 +28,16 @@ export class RolesGuard implements CanActivate {
         'Vous ne disposez pas des droits nécessaires pour cette action.',
       );
     }
+
+    // Défense en profondeur : un rôle SUPER_ADMIN n'est légitime que pour un
+    // compte de l'organisation plateforme. Empêche une session SUPER_ADMIN
+    // obtenue de façon anormale (bug ailleurs, session corrompue) sur un
+    // tenant classique d'accéder aux routes réservées à la plateforme.
+    if (userRole === Role.SUPER_ADMIN && !request.session.isPlatform) {
+      throw new ForbiddenException(
+        'Vous ne disposez pas des droits nécessaires pour cette action.',
+      );
+    }
     return true;
   }
 }

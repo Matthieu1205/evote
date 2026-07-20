@@ -31,6 +31,7 @@ export class SessionGuard implements CanActivate {
         request.session.role = payload.role as string;
         request.session.ordreNumber = payload.ordreNumber as string;
         request.session.organizationId = payload.organizationId as string;
+        request.session.isPlatform = payload.isPlatform as boolean;
         return true;
       }
     }

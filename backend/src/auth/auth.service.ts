@@ -164,6 +164,7 @@ export class AuthService {
     req.session.role = user.role;
     req.session.ordreNumber = user.ordreNumber;
     req.session.organizationId = user.organizationId;
+    req.session.isPlatform = user.organization.isPlatform;
 
     await this.audit.log({
       actorId: user.id,
@@ -181,6 +182,7 @@ export class AuthService {
       role: user.role,
       ordreNumber: user.ordreNumber,
       organizationId: user.organizationId,
+      isPlatform: user.organization.isPlatform,
       exp: Date.now() + 8 * 60 * 60 * 1000,
     };
     const data = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
