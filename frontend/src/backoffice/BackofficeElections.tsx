@@ -306,24 +306,26 @@ export default function BackofficeElections() {
             <label className="mb-2 block text-xs font-semibold text-slate-600">Postes à pourvoir</label>
             <div className="space-y-2">
               {positions.map((p, i) => (
-                <div key={i} className="flex gap-2">
+                <div key={i} className="flex flex-col gap-2 sm:flex-row">
                   <input
-                    className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none sm:flex-1"
                     placeholder="Intitulé du poste"
                     value={p.title}
                     onChange={(e) => { const next = [...positions]; next[i].title = e.target.value; setPositions(next); }}
                   />
-                  <input
-                    type="number" min={1}
-                    className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
-                    value={p.seats}
-                    onChange={(e) => { const next = [...positions]; next[i].seats = parseInt(e.target.value) || 1; setPositions(next); }}
-                  />
-                  <button type="button"
-                    className="bo-btn bo-btn-ghost bo-btn-sm"
-                    onClick={() => setPositions(positions.filter((_, j) => j !== i))}>
-                    Retirer
-                  </button>
+                  <div className="flex gap-2">
+                    <input
+                      type="number" min={1}
+                      className="w-24 shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none"
+                      value={p.seats}
+                      onChange={(e) => { const next = [...positions]; next[i].seats = parseInt(e.target.value) || 1; setPositions(next); }}
+                    />
+                    <button type="button"
+                      className="bo-btn bo-btn-ghost bo-btn-sm shrink-0"
+                      onClick={() => setPositions(positions.filter((_, j) => j !== i))}>
+                      Retirer
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
