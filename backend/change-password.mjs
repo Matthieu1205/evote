@@ -1,12 +1,21 @@
+import 'dotenv/config';
 import { hash, verify } from '@node-rs/argon2';
 import pg from 'pg';
 const { Client } = pg;
 
-const DATABASE_URL = 'postgresql://neondb_owner:npg_txew7iIKAWL0@ep-cool-bar-atw75nn9.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const NEW_PASSWORD = 'SuperAdmin2026';
+const NEW_PASSWORD = process.argv[2];
 const OPTS = { memoryCost: 19456, timeCost: 2, parallelism: 1 };
 
-const client = new Client({ connectionString: DATABASE_URL });
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL manquant (voir backend/.env).');
+  process.exit(1);
+}
+if (!NEW_PASSWORD) {
+  console.error('Usage : node change-password.mjs <nouveau-mot-de-passe>');
+  process.exit(1);
+}
+
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
 const newHash = await hash(NEW_PASSWORD, OPTS);

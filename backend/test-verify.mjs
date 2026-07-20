@@ -1,15 +1,23 @@
 /**
  * Teste localement si le hash argon2 de l'OTP actif peut être vérifié,
  * et si le mot de passe SUPER_ADMIN peut être vérifié aussi.
+ *
+ * Usage: node test-verify.mjs [code-otp] [mot-de-passe]
  */
-import { hash, verify } from '@node-rs/argon2';
+import { verify } from '@node-rs/argon2';
+import 'dotenv/config';
 import pg from 'pg';
 const { Client } = pg;
 
-const DATABASE_URL = process.env.DATABASE_URL ||
-  'postgresql://neondb_owner:npg_txew7iIKAWL0@ep-cool-bar-atw75nn9.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL manquant (voir backend/.env).');
+  process.exit(1);
+}
 
-const client = new Client({ connectionString: DATABASE_URL });
+const testOtpCode = process.argv[2];
+const testPassword = process.argv[3];
+
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
 // Récupérer le SUPER_ADMIN et son OTP actif
@@ -31,16 +39,19 @@ const otp = otpRes.rows[0];
 console.log('--- Test de vérification OTP ---');
 console.log('OTP actif :', otp ? `expiresAt=${otp.expiresAt.toISOString()} attempts=${otp.attempts}` : 'AUCUN');
 
-if (otp) {
-  const otpOk = await verify(otp.codeHash, '512837');
-  console.log('verify("512837") =>', otpOk ? '✅ VALIDE' : '❌ INVALIDE');
+if (otp && testOtpCode) {
+  const otpOk = await verify(otp.codeHash, testOtpCode);
+  console.log(`verify("${testOtpCode}") =>`, otpOk ? '✅ VALIDE' : '❌ INVALIDE');
+} else if (otp) {
+  console.log('(passe un code OTP en 1er argument pour le tester)');
 }
 
 console.log('\n--- Test mot de passe ---');
-console.log('Entrez votre mot de passe SUPER_ADMIN pour le tester:');
-// On va tester avec le mot de passe typique. Remplacer ici si besoin.
-// Pour le test: si vous avez défini un mot de passe lors du backfill, c'est celui-là.
-// Le script va afficher si le hash en DB est vérifiable.
-console.log('Hash en DB (50 premiers chars):', user.passwordHash.slice(0, 60));
+if (testPassword) {
+  const pwdOk = await verify(user.passwordHash, testPassword);
+  console.log('Mot de passe fourni =>', pwdOk ? '✅ VALIDE' : '❌ INVALIDE');
+} else {
+  console.log('(passe un mot de passe en 2e argument pour le tester)');
+}
 
 await client.end();

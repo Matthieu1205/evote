@@ -1,22 +1,27 @@
+import 'dotenv/config';
 import pg from 'pg';
 const { Client } = pg;
 
-const DATABASE_URL = process.env.DATABASE_URL ||
-  'postgresql://neondb_owner:npg_txew7iIKAWL0@ep-cool-bar-atw75nn9.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL manquant (voir backend/.env).');
+  process.exit(1);
+}
 
-const client = new Client({ connectionString: DATABASE_URL });
+const otpId = process.argv[2];
+
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
 // Prolonger l'expiration du dernier OTP non consommé du SUPER_ADMIN
 const newExpiry = new Date(Date.now() + 20 * 60 * 1000); // +20 minutes
 
-const res = await client.query(
-  `UPDATE "Otp"
-   SET "expiresAt" = $1
-   WHERE id = '57789f39-68a7-48dd-9d6f-01e1b0aac019'
-   RETURNING id, "expiresAt", consumed, attempts`,
-  [newExpiry]
-);
+const res = otpId
+  ? await client.query(
+      `UPDATE "Otp" SET "expiresAt" = $1 WHERE id = $2
+       RETURNING id, "expiresAt", consumed, attempts`,
+      [newExpiry, otpId],
+    )
+  : { rowCount: 0 };
 
 if (res.rowCount === 0) {
   console.error('OTP introuvable avec cet id exact, tentative par userId...');
@@ -35,7 +40,6 @@ if (res.rowCount === 0) {
   console.log('Mis à jour par userId :', res2.rows);
 } else {
   console.log('✅ Expiration prolongée avec succès !');
-  console.log('   Code : 512837');
   console.log('   Nouveau expiresAt :', res.rows[0].expiresAt.toISOString());
   console.log('   Valide pendant 20 minutes depuis maintenant.');
 }

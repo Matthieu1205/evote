@@ -2,17 +2,22 @@
  * Script d'injection OTP temporaire — utilise @node-rs/argon2 exactement
  * comme le backend pour garantir la compatibilité du hash.
  *
- * Usage: node inject-otp-now.mjs
- *   DATABASE_URL doit être défini en variable d'environnement ou modifié ci-dessous.
+ * Usage: node inject-otp-now.mjs [code]
+ *   DATABASE_URL doit être défini dans backend/.env. Le code est généré
+ *   aléatoirement si non fourni.
  */
 
+import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
+import { randomInt } from 'crypto';
 import pg from 'pg';
 
 const { Client } = pg;
 
-const DATABASE_URL = process.env.DATABASE_URL ||
-  'postgresql://neondb_owner:npg_txew7iIKAWL0@ep-cool-bar-atw75nn9.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL manquant (voir backend/.env).');
+  process.exit(1);
+}
 
 // Même paramètres que password.service.ts
 const ARGON2_OPTS = {
@@ -21,12 +26,12 @@ const ARGON2_OPTS = {
   parallelism: 1,
 };
 
-const CODE = '512837'; // code OTP à injecter
+const CODE = process.argv[2] || String(randomInt(100000, 1000000));
 const TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 async function main() {
   console.log('Connexion à la base de données...');
-  const client = new Client({ connectionString: DATABASE_URL });
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
 
   try {

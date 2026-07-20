@@ -1,10 +1,13 @@
+import 'dotenv/config';
 import pg from 'pg';
 const { Client } = pg;
 
-const DATABASE_URL = process.env.DATABASE_URL ||
-  'postgresql://neondb_owner:npg_txew7iIKAWL0@ep-cool-bar-atw75nn9.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL manquant (voir backend/.env).');
+  process.exit(1);
+}
 
-const client = new Client({ connectionString: DATABASE_URL });
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
 // SUPER_ADMIN user
