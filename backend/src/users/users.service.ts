@@ -106,15 +106,21 @@ export class UsersService {
     dto: CreateUserDto,
     actorId?: string,
   ): Promise<object> {
-    // Vérifier unicité au sein de l'organisation
-    const existing = await this.prisma.user.findFirst({
-      where: {
-        organizationId,
-        OR: [{ email: dto.email }, { ordreNumber: dto.ordreNumber }],
-      },
+    const emailExists = await this.prisma.user.findFirst({
+      where: { organizationId, email: dto.email },
     });
-    if (existing)
-      throw new ConflictException("Email ou numéro d'ordre déjà utilisé.");
+    if (emailExists) throw new ConflictException('Email déjà utilisé.');
+
+    let ordreNumber = dto.ordreNumber?.trim();
+    if (ordreNumber) {
+      const ordreExists = await this.prisma.user.findFirst({
+        where: { organizationId, ordreNumber },
+      });
+      if (ordreExists)
+        throw new ConflictException("Numéro d'ordre déjà utilisé.");
+    } else {
+      ordreNumber = await this.generateOrdreNumber(organizationId);
+    }
 
     const tempPassword = this.crypto.randomPassword(12);
     const passwordHash = await this.password.hashPassword(tempPassword);
@@ -122,7 +128,7 @@ export class UsersService {
     const user = await this.prisma.user.create({
       data: {
         organizationId,
-        ordreNumber: dto.ordreNumber,
+        ordreNumber,
         email: dto.email,
         firstName: dto.firstName,
         lastName: dto.lastName,
@@ -150,6 +156,26 @@ export class UsersService {
 
     const { passwordHash: _passwordHash, ...result } = user;
     return result;
+  }
+
+  private async generateOrdreNumber(organizationId: string): Promise<string> {
+    const org = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { slug: true },
+    });
+    const prefix = (org?.slug || 'MBR').toUpperCase();
+
+    let seq = (await this.prisma.user.count({ where: { organizationId } })) + 1;
+    let candidate = `${prefix}-${String(seq).padStart(3, '0')}`;
+    while (
+      await this.prisma.user.findFirst({
+        where: { organizationId, ordreNumber: candidate },
+      })
+    ) {
+      seq += 1;
+      candidate = `${prefix}-${String(seq).padStart(3, '0')}`;
+    }
+    return candidate;
   }
 
   async update(

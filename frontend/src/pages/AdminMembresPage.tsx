@@ -18,7 +18,6 @@ interface Member {
 }
 
 const empty = {
-  ordreNumber: '',
   firstName: '',
   lastName: '',
   email: '',
@@ -145,10 +144,6 @@ export default function AdminMembresPage() {
               {createError}
             </div>
           )}
-          <div>
-            <label className="label">Numéro de membre</label>
-            <input className="input" value={form.ordreNumber} onChange={(e) => setForm({ ...form, ordreNumber: e.target.value })} required />
-          </div>
           <div>
             <label className="label">Prénom</label>
             <input className="input" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} required />

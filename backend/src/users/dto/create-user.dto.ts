@@ -9,9 +9,9 @@ import {
 import { Role, MemberStatus } from '@prisma/client';
 
 export class CreateUserDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  ordreNumber: string;
+  ordreNumber?: string;
 
   @IsEmail()
   email: string;
