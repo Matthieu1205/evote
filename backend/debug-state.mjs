@@ -1,8 +1,17 @@
+import 'dotenv/config';
 import { verify } from '@node-rs/argon2';
 import pg from 'pg';
 const { Client } = pg;
 
-const client = new Client({ connectionString: 'postgresql://neondb_owner:npg_txew7iIKAWL0@ep-cool-bar-atw75nn9.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require' });
+const testPassword = process.argv[2];
+const testOtp = process.argv[3];
+
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL manquant (voir backend/.env).');
+  process.exit(1);
+}
+
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
 const u = await client.query(`
@@ -15,11 +24,13 @@ console.log('Status:', user.status);
 console.log('OrdreNumber:', user.ordreNumber);
 console.log('Org slug:', user.slug);
 
-// Tester le mot de passe
-const pwdOk = await verify(user.passwordHash, 'Admin@2026!');
-console.log('Password "Admin@2026!" =>', pwdOk ? '✅ VALIDE' : '❌ INVALIDE');
+if (testPassword) {
+  const pwdOk = await verify(user.passwordHash, testPassword);
+  console.log(`Mot de passe fourni => ${pwdOk ? '✅ VALIDE' : '❌ INVALIDE'}`);
+} else {
+  console.log('(passe le mot de passe à tester en argument : node debug-state.mjs <password> [otp])');
+}
 
-// Tester l OTP actif
 const otp = await client.query(`
   SELECT id, consumed, attempts, "expiresAt", "codeHash"
   FROM "Otp" WHERE "userId" = $1 AND consumed = false AND purpose = 'LOGIN'
@@ -29,9 +40,11 @@ const otp = await client.query(`
 if (otp.rows[0]) {
   const r = otp.rows[0];
   const expired = r.expiresAt < new Date();
-  const otpOk = await verify(r.codeHash, '512837');
   console.log(`OTP: attempts=${r.attempts} expired=${expired}`);
-  console.log('OTP "512837" =>', otpOk ? '✅ VALIDE' : '❌ INVALIDE');
+  if (testOtp) {
+    const otpOk = await verify(r.codeHash, testOtp);
+    console.log(`OTP fourni => ${otpOk ? '✅ VALIDE' : '❌ INVALIDE'}`);
+  }
 } else {
   console.log('Aucun OTP actif');
 }

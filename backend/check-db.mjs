@@ -1,6 +1,13 @@
+import 'dotenv/config';
 import pkg from 'pg';
 const { Client } = pkg;
-const client = new Client({ connectionString: 'postgresql://neondb_owner:npg_txew7iIKAWL0@ep-cool-bar-atw75nn9.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require' });
+
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL manquant (voir backend/.env).');
+  process.exit(1);
+}
+
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
 const orgs = await client.query('SELECT id, slug, name, "isPlatform" FROM "Organization"');

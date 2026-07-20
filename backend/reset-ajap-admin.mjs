@@ -1,12 +1,21 @@
+import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
 import pkg from 'pg';
 const { Client } = pkg;
 
-const DATABASE_URL = 'postgresql://neondb_owner:npg_txew7iIKAWL0@ep-cool-bar-atw75nn9.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const NEW_PASSWORD = 'Admin2026';
+const NEW_PASSWORD = process.argv[2];
 const OPTS = { memoryCost: 19456, timeCost: 2, parallelism: 1 };
 
-const client = new Client({ connectionString: DATABASE_URL });
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL manquant (voir backend/.env).');
+  process.exit(1);
+}
+if (!NEW_PASSWORD) {
+  console.error('Usage : node reset-ajap-admin.mjs <nouveau-mot-de-passe>');
+  process.exit(1);
+}
+
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 await client.connect();
 
 // Trouver l'admin de l'org ajap
@@ -35,12 +44,5 @@ const res = await client.query(
 );
 
 console.log('\n✅ Mot de passe réinitialisé pour :', res.rows);
-console.log('\nIdentifiants de connexion :');
-for (const row of res.rows) {
-  console.log(`  Organisation : ajap`);
-  console.log(`  Numéro      : ${row.ordreNumber}`);
-  console.log(`  Mot de passe: ${NEW_PASSWORD}`);
-  console.log('');
-}
 
 await client.end();
