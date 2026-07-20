@@ -23,6 +23,7 @@ const empty = {
   email: '',
   section: '',
   region: '',
+  role: 'ELECTEUR',
 };
 
 export default function AdminMembresPage() {
@@ -138,9 +139,9 @@ export default function AdminMembresPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={create} className="card mt-6 grid gap-4 p-6 sm:grid-cols-2">
+        <form onSubmit={create} className="card mt-6 grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-3">
           {createError && (
-            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 sm:col-span-2">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 sm:col-span-2 lg:col-span-3">
               {createError}
             </div>
           )}
@@ -160,7 +161,15 @@ export default function AdminMembresPage() {
             <label className="label">Section</label>
             <input className="input" value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })} />
           </div>
-          <div className="sm:col-span-2 flex flex-wrap items-center gap-4">
+          <div>
+            <label className="label">Rôle</label>
+            <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+              {Object.entries(ASSIGNABLE_ROLE_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+          </div>
+          <div className="sm:col-span-2 lg:col-span-3 flex flex-wrap items-center gap-4">
             <button type="submit" className="btn btn-primary">Créer le membre</button>
             <p className="text-xs text-ink-400">Un mot de passe temporaire sera généré et envoyé par email.</p>
           </div>
