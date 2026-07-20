@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { PasswordService } from '../common/password.service';
 import { OtpService } from '../common/otp.service';
@@ -174,6 +175,17 @@ export class AuthService {
       organizationId: user.organizationId,
     });
 
+    // Token signé (fallback cookie-less pour les proxies qui ne relaient pas
+    // fiablement le Set-Cookie d'un rewrite externe, ex. Vercel → Railway).
+    const token = this.signToken({
+      userId: user.id,
+      role: user.role,
+      ordreNumber: user.ordreNumber,
+      organizationId: user.organizationId,
+      isPlatform: user.organization.isPlatform,
+      exp: Date.now() + 8 * 60 * 60 * 1000,
+    });
+
     return {
       id: user.id,
       firstName: user.firstName,
@@ -182,6 +194,7 @@ export class AuthService {
       role: user.role,
       ordreNumber: user.ordreNumber,
       status: user.status,
+      token,
       organization: {
         name: user.organization.name,
         slug: user.organization.slug,
@@ -190,6 +203,13 @@ export class AuthService {
         memberLabel: user.organization.memberLabel,
       },
     };
+  }
+
+  private signToken(payload: Record<string, unknown>): string {
+    const secret = process.env.SESSION_SECRET as string;
+    const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const sig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+    return `${data}.${sig}`;
   }
 
   async logout(req: Request): Promise<{ message: string }> {

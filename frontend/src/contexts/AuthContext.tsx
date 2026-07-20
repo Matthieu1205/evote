@@ -7,7 +7,7 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
-import { api } from '../lib/api';
+import { api, setAuthToken } from '../lib/api';
 
 export interface OrganizationBranding {
   name: string;
@@ -105,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.post('/auth/logout');
     } finally {
+      setAuthToken(null);
       setUser(null);
     }
   }

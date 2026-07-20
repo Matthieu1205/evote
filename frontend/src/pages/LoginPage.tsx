@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { useAuth } from "../contexts/AuthContext";
+import { setAuthToken } from "../lib/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ export default function LoginPage() {
           return;
         }
         const userData = loginData as any;
+        setAuthToken(userData.token);
         login(userData);
         navigate(userData.role === "SUPER_ADMIN" ? "/platform" : "/dashboard");
         return;
@@ -93,6 +95,7 @@ export default function LoginPage() {
         return;
       }
       const userData = data as any;
+      setAuthToken(userData.token);
       login(userData);
       navigate(userData.role === "SUPER_ADMIN" ? "/platform" : "/dashboard");
     } catch {

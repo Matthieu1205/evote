@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { BackofficeShell } from './BackofficeShell';
 import { Pagination } from '../components/Pagination';
 import { ASSIGNABLE_ROLE_LABELS } from '../lib/rbac';
-import { api, BASE_URL } from '../lib/api';
+import { api } from '../lib/api';
 
 interface Member {
   id: string;
@@ -146,9 +146,13 @@ export default function BackofficeMembers() {
   }
 
   async function exportCsv() {
-    const res = await fetch(`${BASE_URL}/users/export`, { credentials: 'include' });
-    if (!res.ok) { showToast('Erreur export CSV'); return; }
-    const blob = await res.blob();
+    let blob: Blob;
+    try {
+      blob = await api.getBlob('/users/export');
+    } catch {
+      showToast('Erreur export CSV');
+      return;
+    }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'membres.csv'; a.click();
