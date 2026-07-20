@@ -28,9 +28,9 @@ export function HeroSlider() {
         }}
       />
 
-      {/* Photo droite — découpe diagonale */}
+      {/* Photo droite — découpe diagonale (masquée sur mobile) */}
       <div
-        className="absolute right-0 top-0 bottom-0 bg-cover bg-no-repeat"
+        className="absolute right-0 top-0 bottom-0 hidden bg-cover bg-no-repeat lg:block"
         style={{
           width: "62%",
           backgroundImage: `url('${FALLBACK_BG}')`,
@@ -38,18 +38,18 @@ export function HeroSlider() {
           clipPath: "polygon(14% 0%, 100% 0%, 100% 100%, 0% 100%)",
         }}
       />
-      {/* Dégradé bas pour lisibilité */}
+      {/* Dégradé bas pour lisibilité (uniquement quand la photo est visible) */}
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 hidden lg:block"
         style={{
           background:
             "linear-gradient(to top, rgba(2,26,17,0.65) 30%, transparent 50%)",
         }}
       />
 
-      {/* Contenu — texte sur la moitié gauche */}
-      <div className="relative z-2 mx-auto flex w-full max-w-12xl flex-1 items-center px-8 pb-20 pt-28 sm:px-12 lg:px-16">
-        <div className="flex flex-col" style={{ width: "40%", minWidth: "" }}>
+      {/* Contenu — texte plein écran sur mobile, moitié gauche à partir de lg */}
+      <div className="relative z-2 mx-auto flex w-full max-w-12xl flex-1 items-center px-6 pb-20 pt-28 sm:px-12 lg:px-16">
+        <div className="flex w-full flex-col lg:w-[40%]">
           <div className="relative -top-8  mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full  rounded-full bg-emerald-400 opacity-75" />

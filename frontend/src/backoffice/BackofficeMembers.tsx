@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { BackofficeShell } from './BackofficeShell';
 import { Pagination } from '../components/Pagination';
-import { ROLE_LABELS } from '../lib/rbac';
+import { ASSIGNABLE_ROLE_LABELS } from '../lib/rbac';
 import { api } from '../lib/api';
 
 interface Member {
@@ -351,7 +351,7 @@ export default function BackofficeMembers() {
                       value={m.role}
                       onChange={(e) => update(m.id, { role: e.target.value })}
                     >
-                      {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                      {Object.entries(ASSIGNABLE_ROLE_LABELS).map(([k, v]) => (
                         <option key={k} value={k}>{v}</option>
                       ))}
                     </select>

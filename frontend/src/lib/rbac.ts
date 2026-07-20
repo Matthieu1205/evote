@@ -6,3 +6,7 @@ export const ROLE_LABELS: Record<string, string> = {
   CANDIDAT: "Candidat",
   ELECTEUR: "Électeur",
 };
+
+export const ASSIGNABLE_ROLE_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(ROLE_LABELS).filter(([role]) => role !== "SUPER_ADMIN")
+);
