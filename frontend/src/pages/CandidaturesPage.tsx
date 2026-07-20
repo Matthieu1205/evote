@@ -37,8 +37,6 @@ interface MyCandidacy {
 
 type UploadState = { url: string; preview: string } | null;
 
-const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
-
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   SOUMISE:  { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'En attente' },
   VALIDEE:  { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Validée' },
@@ -57,23 +55,17 @@ function FileUploadField({ label, accept, type, value, onChange }: {
   async function handleFile(file: File) {
     setErr(null);
     setUploading(true);
-    const form = new FormData();
-    form.append('file', file);
-    form.append('type', type);
-    const token = localStorage.getItem('evote_token');
-    const res = await fetch(`${BASE}/upload`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: form,
-    });
-    const data = await res.json();
-    setUploading(false);
-    if (!res.ok) {
-      setErr((data as { error?: string }).error ?? "Erreur lors de l'envoi");
-      return;
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('type', type);
+      const data = await api.postForm<{ url: string }>('/upload', form);
+      onChange({ url: data.url, preview: URL.createObjectURL(file) });
+    } catch (e) {
+      setErr((e as Error).message ?? "Erreur lors de l'envoi");
+    } finally {
+      setUploading(false);
     }
-    onChange({ url: (data as { url: string }).url, preview: URL.createObjectURL(file) });
   }
 
   return (
@@ -139,6 +131,7 @@ export default function CandidaturesPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [withdrawing, setWithdrawing] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -169,7 +162,10 @@ export default function CandidaturesPage() {
       setElections(candidatureOpen);
       setAllPublicElections(publicElections);
       setMine(cr.data ?? []);
-    } catch { /* ignore */ }
+      setLoadError(null);
+    } catch (err) {
+      setLoadError((err as Error).message ?? 'Erreur lors du chargement des candidatures.');
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -220,6 +216,13 @@ export default function CandidaturesPage() {
         <h1 className="text-2xl font-black text-ink-900">Candidatures</h1>
         <p className="mt-1 text-sm text-ink-500">Déposez votre candidature et suivez son traitement.</p>
       </div>
+
+      {loadError && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {loadError}
+          <button type="button" onClick={load} className="ml-auto font-semibold underline">Réessayer</button>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Formulaire */}

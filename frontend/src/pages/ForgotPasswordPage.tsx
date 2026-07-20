@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
-
-const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
+import { api } from '../lib/api';
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -21,16 +20,7 @@ export default function ForgotPasswordPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`${BASE}/auth/forgot-password`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationSlug, email }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error((d as any).message ?? 'Erreur lors de la demande.');
-      }
+      await api.post('/auth/forgot-password', { organizationSlug, email });
       setStep(2);
     } catch (err) {
       setError((err as Error).message);
@@ -52,14 +42,7 @@ export default function ForgotPasswordPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${BASE}/auth/reset-password`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationSlug, email, otp, newPassword }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error((d as any).message ?? 'Code invalide ou expiré.');
+      await api.post('/auth/reset-password', { organizationSlug, email, otp, newPassword });
       setStep(3);
     } catch (err) {
       setError((err as Error).message);

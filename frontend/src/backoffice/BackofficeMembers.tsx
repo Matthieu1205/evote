@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { BackofficeShell } from './BackofficeShell';
 import { Pagination } from '../components/Pagination';
 import { ASSIGNABLE_ROLE_LABELS } from '../lib/rbac';
-import { api } from '../lib/api';
+import { api, BASE_URL } from '../lib/api';
 
 interface Member {
   id: string;
@@ -17,7 +17,7 @@ interface Member {
   region?: string | null;
 }
 
-const empty = { ordreNumber: '', firstName: '', lastName: '', email: '', section: '', region: '' };
+const empty = { firstName: '', lastName: '', email: '', section: '', region: '' };
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIF: 'bg-emerald-100 text-emerald-700',
@@ -41,11 +41,9 @@ export default function BackofficeMembers() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<{ created: number; skipped: number; errors: { row: number; reason: string }[] } | null>(null);
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pageSize = 50;
-  const BASE = import.meta.env.PROD
-    ? '/api'
-    : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
   function showToast(msg: string) {
     setToast(msg);
@@ -59,7 +57,10 @@ export default function BackofficeMembers() {
       setMembers(data.data ?? []);
       setTotal(data.meta?.total ?? 0);
       setTotalPages(data.meta?.pages ?? 1);
-    } catch { /* ignore */ }
+      setLoadError(null);
+    } catch (err) {
+      setLoadError((err as Error).message ?? 'Erreur lors du chargement des membres.');
+    }
   }, [q, page]);
 
   useEffect(() => {
@@ -71,6 +72,19 @@ export default function BackofficeMembers() {
   async function update(id: string, patch: Record<string, unknown>) {
     await api.put(`/users/${id}`, patch);
     load();
+  }
+
+  function changeRole(m: Member, role: string) {
+    if (role === m.role) return;
+    const label = ASSIGNABLE_ROLE_LABELS[role] ?? role;
+    if (!window.confirm(`Attribuer le rôle "${label}" à ${m.firstName} ${m.lastName} ?`)) return;
+    update(m.id, { role });
+  }
+
+  function changeStatus(m: Member, status: string) {
+    if (status === m.status) return;
+    if (!window.confirm(`Changer le statut de ${m.firstName} ${m.lastName} en "${status}" ?`)) return;
+    update(m.id, { status });
   }
 
   async function saveEmail(id: string, email: string) {
@@ -122,12 +136,8 @@ export default function BackofficeMembers() {
     if (!window.confirm(`Réinitialiser le mot de passe de ${name} ?`)) return;
     setResettingId(id);
     try {
-      const result = await api.post<{ tempPassword: string }>(`/users/${id}/reset-password`, {});
-      if (result.tempPassword) {
-        showToast(`Nouveau MDP : ${result.tempPassword}`);
-      } else {
-        showToast('Mot de passe réinitialisé — email envoyé.');
-      }
+      const result = await api.post<{ message: string }>(`/users/${id}/reset-password`, {});
+      showToast(result.message ?? 'Mot de passe réinitialisé — email envoyé.');
     } catch (err) {
       showToast((err as Error).message ?? 'Erreur lors de la réinitialisation.');
     } finally {
@@ -136,11 +146,7 @@ export default function BackofficeMembers() {
   }
 
   async function exportCsv() {
-    const token = localStorage.getItem('evote_token');
-    const res = await fetch(`${BASE}/users/export`, {
-      credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const res = await fetch(`${BASE_URL}/users/export`, { credentials: 'include' });
     if (!res.ok) { showToast('Erreur export CSV'); return; }
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -245,7 +251,6 @@ export default function BackofficeMembers() {
             </div>
           )}
           {[
-            { key: 'ordreNumber', label: 'Numéro de membre', req: true },
             { key: 'firstName', label: 'Prénom', req: true },
             { key: 'lastName', label: 'Nom', req: true },
             { key: 'email', label: 'Email', req: true, type: 'email' },
@@ -349,7 +354,7 @@ export default function BackofficeMembers() {
                     <select
                       className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 focus:border-emerald-400 focus:outline-none"
                       value={m.role}
-                      onChange={(e) => update(m.id, { role: e.target.value })}
+                      onChange={(e) => changeRole(m, e.target.value)}
                     >
                       {Object.entries(ASSIGNABLE_ROLE_LABELS).map(([k, v]) => (
                         <option key={k} value={k}>{v}</option>
@@ -360,7 +365,7 @@ export default function BackofficeMembers() {
                     <select
                       className={`rounded-lg border-0 px-2 py-1 text-xs font-semibold focus:outline-none ${STATUS_COLORS[m.status] ?? 'bg-slate-100 text-slate-500'}`}
                       value={m.status}
-                      onChange={(e) => update(m.id, { status: e.target.value })}
+                      onChange={(e) => changeStatus(m, e.target.value)}
                     >
                       {['ACTIF', 'SUSPENDU', 'RADIE', 'RETRAITE'].map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -393,7 +398,14 @@ export default function BackofficeMembers() {
                   </td>
                 </tr>
               ))}
-              {members.length === 0 && (
+              {members.length === 0 && loadError && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-10 text-center text-red-500">
+                    {loadError} — <button type="button" onClick={load} className="underline">Réessayer</button>
+                  </td>
+                </tr>
+              )}
+              {members.length === 0 && !loadError && (
                 <tr>
                   <td colSpan={6} className="px-5 py-10 text-center text-slate-400">
                     Aucun membre trouvé.

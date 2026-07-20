@@ -105,7 +105,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await api.post('/auth/logout');
     } finally {
-      localStorage.removeItem('evote_token');
       setUser(null);
     }
   }

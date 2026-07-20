@@ -3,6 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from 'recharts';
+import { api } from '../lib/api';
 
 interface HourDatum { label: string; votes: number }
 interface DayDatum { label: string; votes: number }
@@ -19,18 +20,8 @@ export function DashboardCharts() {
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
-    const base = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
-    const token = localStorage.getItem('evote_token');
     try {
-      const res = await fetch(`${base}/dashboard/charts`, {
-        credentials: 'include',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) {
-        setData({ votesByHour: [], votesByDay: [] });
-        return;
-      }
-      const raw = await res.json();
+      const raw = await api.get<any>('/dashboard/charts');
       setData({
         votesByHour: (raw.votesByHour ?? []).map((d: any) => ({
           label: String(d.hour ?? '').slice(11) + 'h',

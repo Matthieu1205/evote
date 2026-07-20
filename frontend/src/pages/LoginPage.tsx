@@ -59,7 +59,6 @@ export default function LoginPage() {
           return;
         }
         const userData = loginData as any;
-        if (userData.token) localStorage.setItem("evote_token", userData.token);
         login(userData);
         navigate(userData.role === "SUPER_ADMIN" ? "/platform" : "/dashboard");
         return;
@@ -94,7 +93,6 @@ export default function LoginPage() {
         return;
       }
       const userData = data as any;
-      if (userData.token) localStorage.setItem("evote_token", userData.token);
       login(userData);
       navigate(userData.role === "SUPER_ADMIN" ? "/platform" : "/dashboard");
     } catch {

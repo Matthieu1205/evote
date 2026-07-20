@@ -41,10 +41,6 @@ interface Election {
 
 type Phase = "ballot" | "review" | "otp" | "done";
 
-const BASE = import.meta.env.PROD
-  ? "/api"
-  : import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-
 const STEPS = [
   { key: "ballot", label: "Bulletin" },
   { key: "review", label: "Récapitulatif" },
@@ -269,32 +265,15 @@ export default function VoteDetailPage() {
     });
   }
 
-  function authHeader(): Record<string, string> {
-    const token = localStorage.getItem("evote_token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  }
-
   async function startOtp() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch(`${BASE}/votes/request-otp/${electionId}`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...authHeader() },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(
-          (data as { message?: string }).message ??
-            "Impossible d'envoyer le code OTP.",
-        );
-        return;
-      }
-      setDevCode((data as { devCode?: string }).devCode ?? null);
+      const data = await api.post<{ devCode?: string }>(`/votes/request-otp/${electionId}`);
+      setDevCode(data.devCode ?? null);
       setPhase("otp");
-    } catch {
-      setError("Une erreur réseau est survenue.");
+    } catch (err) {
+      setError((err as Error).message ?? "Impossible d'envoyer le code OTP.");
     }
     setSubmitting(false);
   }
@@ -303,23 +282,10 @@ export default function VoteDetailPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch(`${BASE}/votes`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", ...authHeader() },
-        body: JSON.stringify({ electionId, otp, choices }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(
-          (data as { message?: string }).message ??
-            "Le vote n'a pas pu être enregistré.",
-        );
-        return;
-      }
+      await api.post('/votes', { electionId, otp, choices });
       setPhase("done");
-    } catch {
-      setError("Une erreur réseau est survenue.");
+    } catch (err) {
+      setError((err as Error).message ?? "Le vote n'a pas pu être enregistré.");
     }
     setSubmitting(false);
   }

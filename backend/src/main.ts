@@ -59,7 +59,7 @@ async function bootstrap() {
         createTableIfMissing: true,
         tableName: 'user_sessions',
       }),
-      secret: process.env.SESSION_SECRET || 'evote-secret-change-me',
+      secret,
       resave: false,
       saveUninitialized: false,
       cookie: {

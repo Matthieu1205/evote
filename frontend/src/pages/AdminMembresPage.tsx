@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { AppShell } from '../components/AppShell';
 import { Pagination } from '../components/Pagination';
 import { ASSIGNABLE_ROLE_LABELS } from '../lib/rbac';
-import { api } from '../lib/api';
+import { api, BASE_URL } from '../lib/api';
 
 interface Member {
   id: string;
@@ -41,8 +41,6 @@ export default function AdminMembresPage() {
   const [editingEmail, setEditingEmail] = useState<{ id: string; value: string } | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [resetMsg, setResetMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null);
-
-  const BASE = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
   const load = useCallback(async () => {
     try {
@@ -113,7 +111,7 @@ export default function AdminMembresPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <a href={`${BASE}/users/export`} className="btn btn-ghost">
+          <a href={`${BASE_URL}/users/export`} className="btn btn-ghost">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { api } from '../lib/api';
 
 interface LiveElection {
   electionId: string;
@@ -19,18 +20,13 @@ export function LiveScores() {
 
   const load = useCallback(async () => {
     try {
-      const base = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
-      const token = localStorage.getItem('evote_token');
-      const res = await fetch(`${base}/dashboard/live-scores`, {
-        credentials: 'include',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) { setLoading(false); return; }
-      const data = await res.json();
+      const data = await api.get<LiveElection[]>('/dashboard/live-scores');
       setElections(Array.isArray(data) ? data : []);
       setLastRefresh(new Date());
-      setLoading(false);
     } catch {
+      // conservé silencieux : rafraîchissement automatique en arrière-plan,
+      // le dernier état connu reste affiché en cas d'échec ponctuel.
+    } finally {
       setLoading(false);
     }
   }, []);

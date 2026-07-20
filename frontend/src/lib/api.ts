@@ -1,17 +1,12 @@
-const BASE_URL = import.meta.env.PROD
+export const BASE_URL = import.meta.env.PROD
   ? '/api'
   : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
-
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('evote_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers },
+    headers: { 'Content-Type': 'application/json', ...options.headers },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -28,7 +23,6 @@ export const api = {
     const res = await fetch(`${BASE_URL}${path}`, {
       method: 'POST',
       credentials: 'include',
-      headers: authHeaders(),
       body: formData,
     });
     if (!res.ok) {
