@@ -16,9 +16,10 @@ export function Pagination({ page, totalPages, total, pageSize, onPage }: Pagina
       <span className="text-xs text-ink-400">
         {from}–{to} sur {total}
       </span>
-      <div className="flex gap-1">
+      <div className="flex gap-1" role="navigation" aria-label="Pagination">
         <button
           type="button"
+          aria-label="Page précédente"
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}
           className="rounded-lg border border-ink-200 px-3 py-1.5 text-xs font-medium text-ink-600 disabled:opacity-40 hover:bg-ink-50"
@@ -31,6 +32,8 @@ export function Pagination({ page, totalPages, total, pageSize, onPage }: Pagina
             <button
               key={p}
               type="button"
+              aria-label={`Page ${p}`}
+              aria-current={p === page ? 'page' : undefined}
               onClick={() => onPage(p)}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
                 p === page
@@ -44,6 +47,7 @@ export function Pagination({ page, totalPages, total, pageSize, onPage }: Pagina
         })}
         <button
           type="button"
+          aria-label="Page suivante"
           disabled={page >= totalPages}
           onClick={() => onPage(page + 1)}
           className="rounded-lg border border-ink-200 px-3 py-1.5 text-xs font-medium text-ink-600 disabled:opacity-40 hover:bg-ink-50"

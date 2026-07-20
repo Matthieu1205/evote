@@ -2,8 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit.service';
-import { EmailService } from '../common/email.service';
 import { TallyService } from '../tally/tally.service';
+import { ElectionsService } from './elections.service';
 
 @Injectable()
 export class ElectionsScheduler {
@@ -12,8 +12,8 @@ export class ElectionsScheduler {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
-    private email: EmailService,
     private tally: TallyService,
+    private elections: ElectionsService,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
@@ -39,27 +39,10 @@ export class ElectionsScheduler {
       });
       this.logger.log(`Scrutin "${election.title}" automatiquement ouvert.`);
 
-      // Email aux électeurs éligibles
-      const loginUrl = `${process.env.FRONTEND_URL ?? 'https://evote-ashy.vercel.app'}/login`;
-      const voters = await this.prisma.user.findMany({
-        where: {
-          organizationId: election.organizationId,
-          isEligible: true,
-          status: 'ACTIF',
-          role: 'ELECTEUR',
-        },
-        select: { email: true, firstName: true, lastName: true },
-      });
-      for (const voter of voters) {
-        this.email
-          .sendElectionOpenEmail(
-            voter.email,
-            `${voter.firstName} ${voter.lastName}`,
-            election.title,
-            loginUrl,
-          )
-          .catch(() => {});
-      }
+      await this.elections.notifyVotersElectionOpen(
+        election.organizationId,
+        election.title,
+      );
     }
 
     // OUVERT → CLOS si endAt est dépassé

@@ -49,22 +49,24 @@ import AuditPage from './pages/AuditPage';
 import ElectionResultsPage from './pages/ElectionResultsPage';
 import PlatformOrganizations from './platform/PlatformOrganizations';
 
+function RouteLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <span className="text-ink-400">Chargement…</span>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <span className="text-ink-400">Chargement…</span>
-      </div>
-    );
-  }
+  if (loading) return <RouteLoading />;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
 function AdminRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <RouteLoading />;
   if (!user) return <Navigate to="/login" replace />;
   if (!['ADMIN', 'COMMISSION', 'OBSERVATEUR'].includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
@@ -74,7 +76,7 @@ function AdminRoute({ children }: { children: ReactNode }) {
 
 function BackofficeRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <RouteLoading />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
@@ -82,7 +84,7 @@ function BackofficeRoute({ children }: { children: ReactNode }) {
 
 function PlatformRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return null;
+  if (loading) return <RouteLoading />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== 'SUPER_ADMIN') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;

@@ -24,13 +24,18 @@ export default function AdminCandidaturesPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       const url = filter ? `/candidacies?status=${filter}` : '/candidacies';
       const data = await api.get<{ data: Candidacy[] }>(url);
       setItems(data.data ?? []);
-    } catch { /* ignore */ }
+      setLoadError(null);
+    } catch (err) {
+      setLoadError((err as Error).message ?? 'Erreur lors du chargement des candidatures.');
+    }
   }, [filter]);
 
   function showToast(msg: string, ok = true) {
@@ -42,17 +47,21 @@ export default function AdminCandidaturesPage() {
 
   async function validate(id: string) {
     setActionError(null);
+    setProcessingId(id);
     try {
       await api.put(`/candidacies/${id}/validate`, {});
       showToast('Candidature validée avec succès.');
       load();
     } catch (err) {
       setActionError((err as Error).message ?? 'Erreur lors de la validation.');
+    } finally {
+      setProcessingId(null);
     }
   }
 
   async function reject(id: string) {
     setActionError(null);
+    setProcessingId(id);
     try {
       await api.put(`/candidacies/${id}/reject`, { reviewNote: rejectNote || undefined });
       setRejectingId(null);
@@ -61,6 +70,8 @@ export default function AdminCandidaturesPage() {
       load();
     } catch (err) {
       setActionError((err as Error).message ?? 'Erreur lors du rejet.');
+    } finally {
+      setProcessingId(null);
     }
   }
 
@@ -81,6 +92,13 @@ export default function AdminCandidaturesPage() {
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           {actionError}
+        </div>
+      )}
+
+      {loadError && (
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {loadError}
+          <button type="button" onClick={load} className="ml-auto font-semibold underline">Réessayer</button>
         </div>
       )}
 
@@ -199,12 +217,18 @@ export default function AdminCandidaturesPage() {
 
             {c.status === 'SOUMISE' && rejectingId !== c.id && (
               <div className="border-t border-ink-100 p-5 flex gap-2">
-                <button type="button" className="btn-primary" onClick={() => validate(c.id)}>
-                  Valider
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={processingId === c.id}
+                  onClick={() => validate(c.id)}
+                >
+                  {processingId === c.id ? 'Validation…' : 'Valider'}
                 </button>
                 <button
                   type="button"
                   className="btn-danger"
+                  disabled={processingId === c.id}
                   onClick={() => { setRejectingId(c.id); setRejectNote(''); }}
                 >
                   Rejeter
@@ -225,12 +249,18 @@ export default function AdminCandidaturesPage() {
                     onChange={(e) => setRejectNote(e.target.value)}
                   />
                   <div className="mt-3 flex gap-2">
-                    <button type="button" className="btn-danger" onClick={() => reject(c.id)}>
-                      Confirmer le rejet
+                    <button
+                      type="button"
+                      className="btn-danger"
+                      disabled={processingId === c.id}
+                      onClick={() => reject(c.id)}
+                    >
+                      {processingId === c.id ? 'Rejet…' : 'Confirmer le rejet'}
                     </button>
                     <button
                       type="button"
                       className="btn-ghost"
+                      disabled={processingId === c.id}
                       onClick={() => setRejectingId(null)}
                     >
                       Annuler

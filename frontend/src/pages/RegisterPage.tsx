@@ -340,9 +340,10 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="field">
-                  <label className="label">Confirmer le mot de passe</label>
+                  <label className="label" htmlFor="reg-password-confirm">Confirmer le mot de passe</label>
                   <div className="relative">
                     <input
+                      id="reg-password-confirm"
                       type={showPassword ? "text" : "password"}
                       className="input pr-10"
                       placeholder="Répétez le mot de passe"
