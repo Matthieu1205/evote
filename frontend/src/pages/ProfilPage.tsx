@@ -48,23 +48,27 @@ export default function ProfilPage() {
 
   const avatarUrl = photoPreview ?? user?.photoUrl ?? null;
 
-  /* ── Sélection photo (base64, pas d'upload séparé) ── */
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  /* ── Sélection photo : upload vers /api/upload, on ne stocke qu'une URL ── */
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
       setSaveError("Le fichier doit être une image.");
       return;
     }
-    if (file.size > 1_000_000) {
-      setSaveError("La photo ne doit pas dépasser 1 Mo.");
+    if (file.size > 5_000_000) {
+      setSaveError("La photo ne doit pas dépasser 5 Mo.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setPhotoPreview(ev.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    setSaveError(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const data = await api.postForm<{ url: string }>('/upload', fd);
+      setPhotoPreview(data.url);
+    } catch (err) {
+      setSaveError((err as Error).message ?? "Erreur lors de l'envoi de la photo.");
+    }
   }
 
   /* ── Sauvegarder profil ── */
@@ -174,7 +178,7 @@ export default function ProfilPage() {
                     </div>
                   )}
                 </div>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handlePhotoChange} />
               </div>
 
               {/* Badge rôle + bouton éditer */}

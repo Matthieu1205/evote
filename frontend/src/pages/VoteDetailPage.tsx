@@ -15,8 +15,14 @@ interface Candidacy {
   program?: string | null;
   photoUrl?: string | null;
   profession?: string | null;
+  currentRole?: string | null;
+  employer?: string | null;
+  yearsExperience?: number | null;
+  education?: string | null;
   age?: number | null;
   biography?: string | null;
+  pastRoles?: string | null;
+  motivation?: string | null;
   videoUrl?: string | null;
   documentUrl?: string | null;
   user: Candidate;
@@ -159,6 +165,32 @@ function CandidateProfileModal({
                 À propos
               </h4>
               <p className="whitespace-pre-line text-sm text-ink-700">{c.biography}</p>
+            </div>
+          )}
+
+          {(c.currentRole || c.employer || c.yearsExperience != null || c.education) && (
+            <div>
+              <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-400">Parcours professionnel</h4>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-700">
+                {c.currentRole && <span><span className="text-ink-400">Fonction : </span>{c.currentRole}</span>}
+                {c.employer && <span><span className="text-ink-400">Employeur : </span>{c.employer}</span>}
+                {c.yearsExperience != null && <span><span className="text-ink-400">Expérience : </span>{c.yearsExperience} an(s)</span>}
+                {c.education && <span><span className="text-ink-400">Diplôme : </span>{c.education}</span>}
+              </div>
+            </div>
+          )}
+
+          {c.pastRoles && (
+            <div>
+              <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-400">Mandats exercés</h4>
+              <p className="whitespace-pre-line text-sm text-ink-700">{c.pastRoles}</p>
+            </div>
+          )}
+
+          {c.motivation && (
+            <div>
+              <h4 className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-400">Motivations</h4>
+              <p className="whitespace-pre-line text-sm text-ink-700">{c.motivation}</p>
             </div>
           )}
 

@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../crypto/crypto.service';
 import { AuditService } from '../common/audit.service';
+import { Role } from '@prisma/client';
 
 export interface CandidateResult {
   userId: string;
@@ -224,13 +225,29 @@ export class TallyService {
   async getResults(
     organizationId: string,
     electionId: string,
+    role?: Role,
   ): Promise<TallyResult> {
     const election = await this.prisma.election.findFirst({
       where: { id: electionId, organizationId },
     });
     if (!election)
       throw new NotFoundException(`Élection ${electionId} introuvable.`);
-    if (!['DEPOUILLE', 'PUBLIE'].includes(election.status)) {
+
+    // Rôles de surveillance : accès dès le dépouillement (avant publication).
+    const oversightRoles: Role[] = [
+      Role.COMMISSION,
+      Role.ADMIN,
+      Role.OBSERVATEUR,
+      Role.SUPER_ADMIN,
+    ];
+    const isOversight = role !== undefined && oversightRoles.includes(role);
+
+    // Un électeur ne voit les résultats qu'une fois officiellement PUBLIÉS.
+    const allowedStatuses = isOversight
+      ? ['DEPOUILLE', 'PUBLIE']
+      : ['PUBLIE'];
+
+    if (!allowedStatuses.includes(election.status)) {
       throw new ForbiddenException(
         'Les résultats ne sont pas encore disponibles.',
       );

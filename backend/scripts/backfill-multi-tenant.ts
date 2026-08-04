@@ -35,8 +35,7 @@ const TENANT_TABLES = [
 ] as const;
 
 function randomPassword(length = 16): string {
-  const chars =
-    'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   const bytes = crypto.randomBytes(length);
   let pwd = '';
   for (let i = 0; i < length; i++) pwd += chars[bytes[i] % chars.length];

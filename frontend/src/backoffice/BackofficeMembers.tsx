@@ -17,7 +17,7 @@ interface Member {
   region?: string | null;
 }
 
-const empty = { firstName: '', lastName: '', email: '', section: '', region: '' };
+const empty = { firstName: '', lastName: '', email: '', section: '', region: '', membershipDate: '' };
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIF: 'bg-emerald-100 text-emerald-700',
@@ -33,6 +33,7 @@ export default function BackofficeMembers() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [form, setForm] = useState({ ...empty });
+  const [duesUpToDate, setDuesUpToDate] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [editingEmail, setEditingEmail] = useState<{ id: string; value: string } | null>(null);
@@ -103,8 +104,9 @@ export default function BackofficeMembers() {
     e.preventDefault();
     setCreateError(null);
     try {
-      await api.post('/users', form);
+      await api.post('/users', { ...form, membershipDate: form.membershipDate || null, duesUpToDate });
       setForm({ ...empty });
+      setDuesUpToDate(false);
       setShowForm(false);
       showToast('Membre créé avec succès.');
       load();
@@ -260,6 +262,7 @@ export default function BackofficeMembers() {
             { key: 'email', label: 'Email', req: true, type: 'email' },
             { key: 'section', label: 'Section', req: false },
             { key: 'region', label: 'Région', req: false },
+            { key: 'membershipDate', label: "Date d'adhésion", req: false, type: 'date' },
           ].map(({ key, label, req, type }) => (
             <div key={key}>
               <label className="mb-1.5 block text-xs font-semibold text-slate-600">{label}</label>
@@ -272,6 +275,14 @@ export default function BackofficeMembers() {
               />
             </div>
           ))}
+          <div className="flex items-end pb-1">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+              <input type="checkbox" checked={duesUpToDate}
+                onChange={(e) => setDuesUpToDate(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
+              À jour des cotisations
+            </label>
+          </div>
           <div className="sm:col-span-2 lg:col-span-3 flex flex-wrap items-center gap-4">
             <button type="submit" className="bo-btn bo-btn-primary">
               Créer le membre

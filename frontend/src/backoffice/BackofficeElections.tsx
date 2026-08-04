@@ -55,6 +55,7 @@ export default function BackofficeElections() {
   const [editForm, setEditForm] = useState({ title: '', description: '', startAt: '', endAt: '', candidacyStartAt: '', candidacyEndAt: '', resultsPublishAt: '' });
   const [editError, setEditError] = useState<string | null>(null);
   const [tallyingId, setTallyingId] = useState<string | null>(null);
+  const [remindingId, setRemindingId] = useState<string | null>(null);
   const [managingPosId, setManagingPosId] = useState<string | null>(null);
   const [existingPositions, setExistingPositions] = useState<Position[]>([]);
   const [newPosForm, setNewPosForm] = useState({ title: '', seats: 1 });
@@ -151,6 +152,18 @@ export default function BackofficeElections() {
       alert((err as Error).message ?? 'Erreur lors du dépouillement');
     } finally {
       setTallyingId(null);
+    }
+  }
+
+  async function remind(id: string) {
+    setRemindingId(id);
+    try {
+      const r = await api.post<{ sent: number }>(`/elections/${id}/remind`);
+      showToast(`${r.sent} rappel(s) envoyé(s) aux non-votants.`);
+    } catch (err) {
+      alert((err as Error).message ?? 'Erreur lors de l\'envoi des rappels');
+    } finally {
+      setRemindingId(null);
     }
   }
 
@@ -394,6 +407,13 @@ export default function BackofficeElections() {
                   <button onClick={() => setStatus(e.id, 'CLOS')}
                     className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50">
                     Clôturer
+                  </button>
+                )}
+                {e.status === 'OUVERT' && (
+                  <button onClick={() => remind(e.id)} disabled={remindingId === e.id}
+                    title="Envoyer un email de rappel aux électeurs n'ayant pas encore voté"
+                    className="rounded-lg border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-50 disabled:opacity-50">
+                    {remindingId === e.id ? 'Envoi…' : 'Rappeler les non-votants'}
                   </button>
                 )}
                 {e.status === 'OUVERT' && e._count.voteRecords === 0 && (

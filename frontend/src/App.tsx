@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Component, type ReactNode } from 'react';
+import { ForcedPasswordChange } from './components/ForcedPasswordChange';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };
@@ -61,6 +62,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <RouteLoading />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <ForcedPasswordChange />;
   return <>{children}</>;
 }
 
@@ -68,6 +70,7 @@ function AdminRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <RouteLoading />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <ForcedPasswordChange />;
   if (!['ADMIN', 'COMMISSION', 'OBSERVATEUR'].includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -78,6 +81,7 @@ function BackofficeRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <RouteLoading />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <ForcedPasswordChange />;
   if (user.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
@@ -86,6 +90,7 @@ function PlatformRoute({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <RouteLoading />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <ForcedPasswordChange />;
   if (user.role !== 'SUPER_ADMIN') return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }

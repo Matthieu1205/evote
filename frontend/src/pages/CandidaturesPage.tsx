@@ -1,6 +1,19 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { AppShell } from '../components/AppShell';
 import { api } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
+
+/** Ancienneté en années pleines à partir de la date d'adhésion. */
+function seniorityYears(since?: string | null): number | null {
+  if (!since) return null;
+  const d = new Date(since);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let years = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) years--;
+  return Math.max(0, years);
+}
 
 interface ValidatedCandidate {
   id: string;
@@ -29,9 +42,16 @@ interface MyCandidacy {
   reviewNote?: string | null;
   photoUrl?: string | null;
   videoUrl?: string | null;
+  documentUrl?: string | null;
   profession?: string | null;
+  currentRole?: string | null;
+  employer?: string | null;
+  yearsExperience?: number | null;
+  education?: string | null;
   age?: number | null;
   biography?: string | null;
+  pastRoles?: string | null;
+  motivation?: string | null;
   position: { title: string };
 }
 
@@ -45,7 +65,7 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
 };
 
 function FileUploadField({ label, accept, type, value, onChange }: {
-  label: string; accept: string; type: 'photo' | 'video';
+  label: string; accept: string; type: 'photo' | 'video' | 'document';
   value: UploadState; onChange: (v: UploadState) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -75,8 +95,16 @@ function FileUploadField({ label, accept, type, value, onChange }: {
         <div className="relative inline-block">
           {type === 'photo' ? (
             <img src={value.preview} alt="Aperçu" className="h-32 w-32 rounded-2xl border border-ink-200 object-cover" />
-          ) : (
+          ) : type === 'video' ? (
             <video src={value.preview} className="h-32 rounded-2xl border border-ink-200" controls />
+          ) : (
+            <a href={value.preview} target="_blank" rel="noreferrer"
+              className="flex h-32 w-40 flex-col items-center justify-center gap-2 rounded-2xl border border-ink-200 bg-ink-50 text-sm font-medium text-brand-600 hover:bg-brand-50">
+              <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
+              </svg>
+              Voir le PDF
+            </a>
           )}
           <button
             type="button"
@@ -95,15 +123,17 @@ function FileUploadField({ label, accept, type, value, onChange }: {
               <svg viewBox="0 0 24 24" className="h-6 w-6 text-ink-400" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 {type === 'photo' ? (
                   <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></>
-                ) : (
+                ) : type === 'video' ? (
                   <><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></>
+                ) : (
+                  <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></>
                 )}
               </svg>
               <span className="mt-1.5 text-sm font-medium text-ink-600">
-                {type === 'photo' ? 'Choisir une photo' : 'Ajouter une vidéo'}
+                {type === 'photo' ? 'Choisir une photo' : type === 'video' ? 'Ajouter une vidéo' : 'Ajouter un document'}
               </span>
               <span className="mt-0.5 text-xs text-ink-400">
-                {type === 'photo' ? 'JPG, PNG, WEBP · max 5 Mo' : 'MP4, WEBM · max 80 Mo'}
+                {type === 'photo' ? 'JPG, PNG, WEBP · max 5 Mo' : type === 'video' ? 'MP4, WEBM · max 80 Mo' : 'PDF · max 10 Mo'}
               </span>
             </>
           )}
@@ -117,16 +147,25 @@ function FileUploadField({ label, accept, type, value, onChange }: {
 }
 
 export default function CandidaturesPage() {
+  const { user } = useAuth();
   const [elections, setElections] = useState<Election[]>([]);
   const [allPublicElections, setAllPublicElections] = useState<Election[]>([]);
   const [mine, setMine] = useState<MyCandidacy[]>([]);
   const [positionId, setPositionId] = useState('');
   const [program, setProgram] = useState('');
   const [profession, setProfession] = useState('');
+  const [currentRole, setCurrentRole] = useState('');
+  const [employer, setEmployer] = useState('');
+  const [pastRoles, setPastRoles] = useState('');
+  const [motivation, setMotivation] = useState('');
   const [age, setAge] = useState('');
   const [biography, setBiography] = useState('');
   const [photo, setPhoto] = useState<UploadState>(null);
   const [video, setVideo] = useState<UploadState>(null);
+  const [docFile, setDocFile] = useState<UploadState>(null);
+  const [conditions, setConditions] = useState<{ id: string; text: string }[]>([]);
+  const [acceptConditions, setAcceptConditions] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -135,10 +174,12 @@ export default function CandidaturesPage() {
 
   const load = useCallback(async () => {
     try {
-      const [er, cr] = await Promise.all([
+      const [er, cr, conds] = await Promise.all([
         api.get<{ data: Election[] }>('/elections'),
         api.get<{ data: MyCandidacy[] }>('/candidacies'),
+        api.get<{ id: string; text: string }[]>('/candidacies/conditions').catch(() => []),
       ]);
+      setConditions(conds ?? []);
 
       const candidatureOpen: Election[] = [];
       const publicElections: Election[] = [];
@@ -184,24 +225,75 @@ export default function CandidaturesPage() {
     }
   }
 
+  function resetForm() {
+    setProgram(''); setProfession(''); setAge(''); setBiography('');
+    setCurrentRole(''); setEmployer('');
+    setPastRoles(''); setMotivation('');
+    setPhoto(null); setVideo(null); setDocFile(null);
+    setPositionId(''); setAcceptConditions(false); setEditingId(null);
+  }
+
+  function startEdit(c: MyCandidacy) {
+    setEditingId(c.id);
+    setProgram(c.program ?? '');
+    setProfession(c.profession ?? '');
+    setCurrentRole(c.currentRole ?? '');
+    setEmployer(c.employer ?? '');
+    setPastRoles(c.pastRoles ?? '');
+    setMotivation(c.motivation ?? '');
+    setAge(c.age ? String(c.age) : '');
+    setBiography(c.biography ?? '');
+    setPhoto(c.photoUrl ? { url: c.photoUrl, preview: c.photoUrl } : null);
+    setVideo(c.videoUrl ? { url: c.videoUrl, preview: c.videoUrl } : null);
+    setDocFile(c.documentUrl ? { url: c.documentUrl, preview: c.documentUrl } : null);
+    setMessage(null); setError(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setMessage(null);
+    if (!editingId && conditions.length > 0 && !acceptConditions) {
+      setError('Vous devez certifier remplir les conditions de candidature.');
+      return;
+    }
     setLoading(true);
     try {
-      await api.post('/candidacies', {
-        positionId,
-        program,
-        profession: profession || undefined,
-        age: age ? parseInt(age, 10) : undefined,
-        biography: biography || undefined,
-        photoUrl: photo?.url,
-        videoUrl: video?.url,
-      });
-      setMessage('Candidature soumise. Elle sera examinée par la commission.');
-      setProgram(''); setProfession(''); setAge(''); setBiography('');
-      setPhoto(null); setVideo(null); setPositionId('');
+      if (editingId) {
+        await api.put(`/candidacies/${editingId}`, {
+          program,
+          profession: profession || null,
+          currentRole: currentRole || null,
+          employer: employer || null,
+          age: age ? parseInt(age, 10) : null,
+          biography: biography || null,
+          pastRoles: pastRoles || null,
+          motivation: motivation || null,
+          photoUrl: photo?.url ?? null,
+          videoUrl: video?.url ?? null,
+          documentUrl: docFile?.url ?? null,
+        });
+        setMessage('Candidature mise à jour.');
+      } else {
+        await api.post('/candidacies', {
+          positionId,
+          program,
+          profession: profession || undefined,
+          currentRole: currentRole || undefined,
+          employer: employer || undefined,
+          age: age ? parseInt(age, 10) : undefined,
+          biography: biography || undefined,
+          pastRoles: pastRoles || undefined,
+          motivation: motivation || undefined,
+          photoUrl: photo?.url,
+          videoUrl: video?.url,
+          documentUrl: docFile?.url,
+          acceptConditions,
+        });
+        setMessage('Candidature soumise. Elle sera examinée par la commission.');
+      }
+      resetForm();
       load();
     } catch (err) {
       setError((err as Error).message ?? 'Erreur lors de la soumission.');
@@ -306,6 +398,18 @@ export default function CandidaturesPage() {
                   </select>
                 </div>
 
+                {/* Fiche membre (lecture seule — reprise du dossier membre) */}
+                <div className="rounded-2xl border border-ink-200 bg-ink-50 p-4">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-ink-400">Votre fiche membre</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div><span className="text-ink-400">Ancienneté : </span><span className="font-medium text-ink-800">{seniorityYears(user?.membershipDate) != null ? `${seniorityYears(user?.membershipDate)} an(s)` : '—'}</span></div>
+                    <div><span className="text-ink-400">Cotisations : </span>{user?.duesUpToDate ? <span className="font-medium text-emerald-600">À jour</span> : <span className="font-medium text-red-500">Non à jour</span>}</div>
+                    <div><span className="text-ink-400">Section : </span><span className="font-medium text-ink-800">{user?.section || '—'}</span></div>
+                    <div><span className="text-ink-400">Région : </span><span className="font-medium text-ink-800">{user?.region || '—'}</span></div>
+                  </div>
+                  <p className="mt-2 text-xs text-ink-400">Ces informations proviennent de votre dossier membre. Pour les corriger, contactez l'administration.</p>
+                </div>
+
                 {/* Séparateur section profil */}
                 <div className="flex items-center gap-3">
                   <div className="flex-1 border-t border-ink-100" />
@@ -328,12 +432,47 @@ export default function CandidaturesPage() {
                   </div>
                 </div>
 
+                {/* Parcours professionnel */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-ink-600">Fonction actuelle</label>
+                    <input type="text" className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      placeholder="Ex : Directeur, Responsable…" value={currentRole} onChange={(e) => setCurrentRole(e.target.value)} maxLength={120} />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-ink-600">Employeur / structure</label>
+                    <input type="text" className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                      placeholder="Ex : Hôpital Central" value={employer} onChange={(e) => setEmployer(e.target.value)} maxLength={120} />
+                  </div>
+                </div>
+
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-ink-600">Biographie</label>
                   <textarea className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
                     rows={3} value={biography} onChange={(e) => setBiography(e.target.value)}
                     placeholder="Parcours, expérience, engagements…" maxLength={2000} />
                   <p className="mt-0.5 text-right text-xs text-ink-400">{biography.length}/2000</p>
+                </div>
+
+                {/* Séparateur engagement */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 border-t border-ink-100" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-ink-400">Engagement associatif</span>
+                  <div className="flex-1 border-t border-ink-100" />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-ink-600">Mandats / responsabilités déjà exercés</label>
+                  <textarea className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    rows={2} value={pastRoles} onChange={(e) => setPastRoles(e.target.value)}
+                    placeholder="Ex : Trésorier 2020-2022, membre du bureau…" maxLength={1000} />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-ink-600">Motivations</label>
+                  <textarea className="w-full rounded-xl border border-ink-200 px-3 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    rows={3} value={motivation} onChange={(e) => setMotivation(e.target.value)}
+                    placeholder="Pourquoi vous présentez-vous ?" maxLength={1500} />
                 </div>
 
                 {/* Séparateur section dossier */}
@@ -354,6 +493,24 @@ export default function CandidaturesPage() {
 
                 <FileUploadField label="Vidéo de présentation (facultative)" accept="video/mp4,video/webm,video/quicktime" type="video" value={video} onChange={setVideo} />
 
+                <FileUploadField label="Programme / document (PDF, facultatif)" accept="application/pdf" type="document" value={docFile} onChange={setDocFile} />
+
+                {/* Attestation des conditions (dépôt initial uniquement) */}
+                {!editingId && conditions.length > 0 && (
+                  <div className="rounded-2xl border border-ink-200 bg-ink-50 p-4">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">Conditions de candidature</p>
+                    <ul className="mb-3 list-disc space-y-1 pl-5 text-sm text-ink-700">
+                      {conditions.map((c) => <li key={c.id}>{c.text}</li>)}
+                    </ul>
+                    <label className="flex cursor-pointer items-start gap-2 text-sm text-ink-700">
+                      <input type="checkbox" checked={acceptConditions}
+                        onChange={(e) => setAcceptConditions(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500" />
+                      <span>Je certifie sur l'honneur remplir l'ensemble des conditions ci-dessus.</span>
+                    </label>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -367,8 +524,15 @@ export default function CandidaturesPage() {
                       </svg>
                       Envoi en cours…
                     </>
-                  ) : 'Soumettre ma candidature'}
+                  ) : editingId ? 'Enregistrer les modifications' : 'Soumettre ma candidature'}
                 </button>
+
+                {editingId && (
+                  <button type="button" onClick={resetForm}
+                    className="w-full rounded-xl border border-ink-200 py-2.5 text-sm font-medium text-ink-600 transition hover:bg-ink-50">
+                    Annuler la modification
+                  </button>
+                )}
               </form>
             )}
           </div>
@@ -432,14 +596,23 @@ export default function CandidaturesPage() {
                   )}
 
                   {c.status === 'SOUMISE' && (
-                    <button
-                      type="button"
-                      onClick={() => withdraw(c.id)}
-                      disabled={withdrawing === c.id}
-                      className="mt-3 text-xs font-medium text-red-500 transition hover:text-red-700 disabled:opacity-50"
-                    >
-                      {withdrawing === c.id ? 'Retrait…' : '× Retirer cette candidature'}
-                    </button>
+                    <div className="mt-3 flex items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(c)}
+                        className="text-xs font-medium text-brand-600 transition hover:text-brand-700"
+                      >
+                        ✎ Modifier
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => withdraw(c.id)}
+                        disabled={withdrawing === c.id}
+                        className="text-xs font-medium text-red-500 transition hover:text-red-700 disabled:opacity-50"
+                      >
+                        {withdrawing === c.id ? 'Retrait…' : '× Retirer cette candidature'}
+                      </button>
+                    </div>
                   )}
                 </div>
               );

@@ -12,8 +12,15 @@ interface Candidacy {
   status: string;
   program?: string | null;
   profession?: string | null;
+  currentRole?: string | null;
+  employer?: string | null;
+  yearsExperience?: number | null;
+  education?: string | null;
   age?: number | null;
   biography?: string | null;
+  pastRoles?: string | null;
+  motivation?: string | null;
+  documentUrl?: string | null;
   photoUrl?: string | null;
   videoUrl?: string | null;
   user: { firstName: string; lastName: string; ordreNumber: string; section?: string | null };
@@ -180,6 +187,34 @@ export default function BackofficeCandidatures() {
                         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Biographie</p>
                         <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{c.biography}</p>
                       </div>
+                    )}
+                    {(c.currentRole || c.employer || c.yearsExperience != null || c.education) && (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Parcours professionnel</p>
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-700">
+                          {c.currentRole && <div><dt className="inline text-slate-400">Fonction : </dt><dd className="inline font-medium">{c.currentRole}</dd></div>}
+                          {c.employer && <div><dt className="inline text-slate-400">Employeur : </dt><dd className="inline font-medium">{c.employer}</dd></div>}
+                          {c.yearsExperience != null && <div><dt className="inline text-slate-400">Expérience : </dt><dd className="inline font-medium">{c.yearsExperience} an(s)</dd></div>}
+                          {c.education && <div><dt className="inline text-slate-400">Diplôme : </dt><dd className="inline font-medium">{c.education}</dd></div>}
+                        </dl>
+                      </div>
+                    )}
+                    {c.pastRoles && (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Mandats / responsabilités</p>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{c.pastRoles}</p>
+                      </div>
+                    )}
+                    {c.motivation && (
+                      <div>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Motivations</p>
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{c.motivation}</p>
+                      </div>
+                    )}
+                    {c.documentUrl && (
+                      <a href={c.documentUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                        📄 Voir le document (PDF)
+                      </a>
                     )}
                   </div>
                   {c.program && (

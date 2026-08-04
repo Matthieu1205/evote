@@ -29,6 +29,9 @@ export interface AuthUser {
   section?: string | null;
   region?: string | null;
   photoUrl?: string | null;
+  membershipDate?: string | null;
+  duesUpToDate?: boolean;
+  mustChangePassword?: boolean;
   organization: OrganizationBranding;
 }
 
@@ -43,6 +46,9 @@ export interface RawApiUser {
   section?: string | null;
   region?: string | null;
   photoUrl?: string | null;
+  membershipDate?: string | null;
+  duesUpToDate?: boolean;
+  mustChangePassword?: boolean;
   organization: OrganizationBranding;
 }
 
@@ -59,6 +65,9 @@ function mapUser(data: RawApiUser): AuthUser {
     section: data.section,
     region: data.region,
     photoUrl: data.photoUrl,
+    membershipDate: data.membershipDate,
+    duesUpToDate: data.duesUpToDate,
+    mustChangePassword: data.mustChangePassword,
     organization: data.organization,
   };
 }
