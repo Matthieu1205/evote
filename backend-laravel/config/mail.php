@@ -16,6 +16,12 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        // Resend (API HTTPS) — recommandé en production (non bloqué par les
+        // hébergeurs qui filtrent le SMTP). Nécessite resend/resend-php + RESEND_API_KEY.
+        'resend' => [
+            'transport' => 'resend',
+        ],
+
         'log' => [
             'transport' => 'log',
             'channel' => env('MAIL_LOG_CHANNEL'),

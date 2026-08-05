@@ -14,9 +14,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // SQLite (tests) : les colonnes TEXT sont déjà illimitées, inutile de
-        // les modifier (et ->change() est superflu). MySQL uniquement.
-        if (DB::getDriverName() === 'sqlite') {
+        // Uniquement MySQL : sur SQLite (tests) et PostgreSQL (prod), les
+        // colonnes texte sont déjà illimitées et les migrations de création
+        // posent directement le bon type — ce ->change() est superflu.
+        if (DB::getDriverName() !== 'mysql') {
             return;
         }
 

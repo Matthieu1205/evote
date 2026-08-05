@@ -1,0 +1,15 @@
+.git
+.gitignore
+vendor
+node_modules
+.env
+.env.*
+!.env.example
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+tests
+phpunit.xml
+*.md
+test-*.sh
