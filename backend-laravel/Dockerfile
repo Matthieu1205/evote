@@ -18,9 +18,14 @@ WORKDIR /app
 # Code de l'application
 COPY . .
 
-# Dépendances PHP (install reproductible ; fallback update si le lock est en retard)
-RUN composer install --no-dev --optimize-autoloader --no-interaction \
-    || composer update --no-dev --optimize-autoloader --no-interaction
+# Dépendances PHP — avec réessais : GitHub renvoie parfois des 429 (rate limit)
+# sur les téléchargements de paquets. On retente plusieurs fois avant d'abandonner.
+RUN for i in 1 2 3 4 5 6; do \
+        composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist && break; \
+        echo ">> Composer a échoué (tentative $i) — nouvelle tentative dans 20s…"; \
+        sleep 20; \
+    done \
+    && test -f vendor/autoload.php
 
 # Répertoires inscriptibles
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views \
