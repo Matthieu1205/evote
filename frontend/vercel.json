@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://unique-liberation-production-61f9.up.railway.app/api/:path*"
+      "destination": "https://evote-73w8.onrender.com/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://unique-liberation-production-61f9.up.railway.app/uploads/:path*"
+      "destination": "https://evote-73w8.onrender.com/uploads/:path*"
     },
     {
       "source": "/(.*)",
